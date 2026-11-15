@@ -101,8 +101,38 @@ Render Free может запускаться около минуты после
 
 ## OpenCode в GitHub
 
-Вызов агента по комментариям, выбранная модель, доступ App и ограничения описаны
-в [инструкции OpenCode](docs/opencode.md). Локальная работа остаётся в Codex.
+Workflow [OpenCode](.github/workflows/opencode.yml) запускает агента OpenCode по команде
+в комментарии: он читает [правила проекта](AGENTS.md), настройки из [docs/agents/](docs/agents/)
+и использует скиллы из `.agents/skills/`. Подробная инструкция — [docs/opencode.md](docs/opencode.md).
+
+| Параметр | Значение |
+|---|---|
+| События | `issue_comment` и `pull_request_review_comment`, `types: [created]` |
+| Команды | `/oc <задание>` и `/opencode <задание>` словом в комментарии |
+| Модель | `opencode/glm-5.3-flash-free` |
+| Секрет | `OPENCODE_API_KEY`; значение добавляет владелец в Settings, в репозитории его нет |
+| Sharing | `SHARE=false`, публичная ссылка на сессию не создаётся |
+| Авторизация | Стандартный OIDC через [OpenCode Agent App](https://github.com/apps/opencode-agent); `contents: read`, `id-token: write`, `persist-credentials: false` |
+| Кто вызывает | Доверенный человек с текущими правами `write`/`admin`, совпадающий с автором комментария; боты и PR из форков отклоняются |
+| Ограничения | Проверка доступа — 2 минуты, работа агента — 15; запуски одного issue/PR сериализованы по его номеру |
+
+Команда проверяется дважды: CLI распознаёт mentions `default` (`/oc`, `/opencode`),
+а job авторизации фильтрует комментарии по этим же словам до checkout и передачи секрета.
+
+OpenCode прекратил поддержку GitHub Action, а прежний composite action скачивал CLI версии `latest`
+даже при закреплении SHA самого action. Поэтому workflow запускает закреплённый CLI `v1.19.4` напрямую
+и сверяет SHA-256 архива с digest официального релиза. Локальная работа остаётся в Codex;
+OpenCode используется только в GitHub.
+
+### Проверка контекста
+
+Приёмка подтвердила на свежем раннере: трекер задач — GitHub Issues проекта 387, все 38 скиллов
+из `.agents/skills/*/SKILL.md` доступны штатному инструменту `skill`, общая команда проверок — `mise run check`.
+
+- Исходный запуск `/oc explain this issue`: [комментарий](https://github.com/samurswife/ai-for-developers-project-387/issues/1#issuecomment-6895410988)
+  и [запуск Actions](https://github.com/samurswife/ai-for-developers-project-387/actions/runs/43721705426).
+- Проверка контекста: [комментарий](https://github.com/samurswife/ai-for-developers-project-387/issues/3#issuecomment-6896029306)
+  и [запуск Actions](https://github.com/samurswife/ai-for-developers-project-387/actions/runs/43724084428).
 
 ## API
 
