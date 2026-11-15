@@ -119,6 +119,15 @@ Workflow [OpenCode](.github/workflows/opencode.yml) запускает аген�
 Команда проверяется дважды: CLI распознаёт mentions `default` (`/oc`, `/opencode`),
 а job авторизации фильтрует комментарии по этим же словам до checkout и передачи секрета.
 
+Новые issue разбираются автоматически отдельным workflow
+[opencode-triage.yml](.github/workflows/opencode-triage.yml) на событии `issues: [opened]`.
+До checkout проверяются доверенный автор, его текущие права и актуальные
+метки issue: закрытые и обращения с `ready-for-agent`, `ready-for-human` или `wontfix` пропускаются.
+Автотриаж ограничен комментарием и метками текущего обращения (`bug`/`enhancement` плюс
+`needs-triage` или `needs-info`); спецификации, тикеты и реализация запускаются отдельно
+по явному поручению человека. Перед запуском агента права и готовность issue проверяются повторно.
+Подробное описание — [docs/opencode.md](docs/opencode.md#автоматический-разбор-новых-обращений).
+
 OpenCode прекратил поддержку GitHub Action, а прежний composite action скачивал CLI версии `latest`
 даже при закреплении SHA самого action. Поэтому workflow запускает закреплённый CLI `v1.19.4` напрямую
 и сверяет SHA-256 архива с digest официального релиза. Локальная работа остаётся в Codex;
