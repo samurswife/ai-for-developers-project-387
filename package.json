@@ -1,0 +1,49 @@
+{
+  "name": "calendar-calls",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "generate": "pnpm --filter @calendar/contract run generate && pnpm --filter @calendar/api-sdk run generate",
+    "build:sdk": "pnpm --filter @calendar/api-sdk run build",
+    "build:backend": "pnpm --filter @calendar/backend run build",
+    "dev:backend": "pnpm --filter @calendar/backend run start:dev",
+    "start:backend": "pnpm --filter @calendar/backend run start:prod",
+    "build:frontend": "pnpm --filter @calendar/frontend run build",
+    "dev:frontend": "pnpm --filter @calendar/frontend run dev",
+    "preview:frontend": "pnpm --filter @calendar/frontend run preview",
+    "typecheck": "pnpm -r --if-present run typecheck",
+    "test": "pnpm --filter @calendar/smoke-tests run test",
+    "test:api": "pnpm --filter @calendar/smoke-tests run test:api",
+    "verify:contract": "pnpm --filter @calendar/contract-probe run verify",
+    "lint:code": "oxlint --deny-warnings apps packages tools",
+    "lint:css": "stylelint \"apps/frontend/src/**/*.css\" --max-warnings 0",
+    "lint:format": "oxfmt --check .",
+    "lint:unused": "knip --no-progress",
+    "lint:architecture": "depcruise --config .dependency-cruiser.cjs apps/backend/src apps/frontend/src packages/api-sdk/src tools",
+    "lint:versions": "syncpack lint --dependency-types dev,prod,pnpmOverrides",
+    "lint:commits": "node --test tools/quality/lint-commits.test.mjs && node tools/quality/lint-commits.mjs",
+    "lint:openapi": "vacuum lint --no-banner --no-update-check --details --fail-severity warn specs/generated/openapi.json",
+    "lint:markdown": "rumdl check",
+    "scan:secrets": "betterleaks dir --redact --no-banner .",
+    "scan:vulnerabilities": "osv-scanner scan source --lockfile pnpm-lock.yaml",
+    "lint:generated": "node tools/quality/check-generated.mjs",
+    "lint:typespec": "pnpm --filter @calendar/contract exec tsp format --check main.tsp",
+    "lint:workflows": "jactionlint --strict-exit .github/workflows/check.yml .github/workflows/release-please.yml .github/workflows/opencode.yml",
+    "lint:agents": "agnix --strict --target codex AGENTS.md"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "21.2.4",
+    "@commitlint/config-conventional": "21.2.4",
+    "dependency-cruiser": "18.7.2",
+    "knip": "6.44.1",
+    "oxfmt": "0.76.0",
+    "oxlint": "1.90.0",
+    "stylelint": "17.16.0",
+    "stylelint-config-standard": "40.0.0",
+    "syncpack": "15.3.3"
+  },
+  "engines": {
+    "node": "26.13.0"
+  },
+  "packageManager": "pnpm@12.16.1"
+}
