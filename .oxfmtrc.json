@@ -1,0 +1,16 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "singleQuote": true,
+  "semi": true,
+  "ignorePatterns": [
+    ".agents/skills/**",
+    "**/node_modules/**",
+    "**/dist/**",
+    "**/generated/**",
+    "**/*.md",
+    ".github/**",
+    ".idea/**",
+    "pnpm-lock.yaml",
+    "mise.lock"
+  ]
+}

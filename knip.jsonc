@@ -1,0 +1,20 @@
+{
+  "$schema": "./node_modules/knip/schema-jsonc.json",
+  // Third-party skill resources are consumed by agents, not application imports.
+  "ignore": [".agents/skills/**"],
+  // Native binaries are installed and pinned by mise.
+  "ignoreBinaries": ["vacuum", "rumdl", "betterleaks", "osv-scanner", "jactionlint", "agnix"],
+  "workspaces": {
+    "specs": {
+      // Knip does not parse TypeSpec imports or emitter settings.
+      "ignoreDependencies": ["@typespec/http", "@typespec/openapi", "@typespec/openapi3"],
+    },
+    "tools/contract-probe": {
+      "entry": ["fixtures/health.controller.ts"],
+    },
+    "tools/smoke-tests": {
+      // API tests use a separate Vitest mode; Node loads the fault fixture with --import.
+      "entry": ["*.test.ts", "fail-randomness.mjs", "calendar-fixture.mjs"],
+    },
+  },
+}

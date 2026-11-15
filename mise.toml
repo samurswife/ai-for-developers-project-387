@@ -1,0 +1,191 @@
+min_version = "2026.10.25"
+
+[settings]
+experimental = true
+
+[tools]
+node = "26.13.0"
+pnpm = "12.16.1"
+hk = "2.11.1"
+pkl = "0.32.2"
+pitchfork = "2.33.1"
+vacuum = "0.36.2"
+jactionlint = "2.4.0"
+betterleaks = "1.9.0"
+osv-scanner = "2.7.0"
+rumdl = "0.3.2"
+"github:agent-sh/agnix" = "0.60.3"
+
+[tasks.setup]
+description = "Установить зависимости по lockfile, Chromium и Git-хуки"
+run = ["pnpm install --frozen-lockfile", { task = "setup:browsers" }, "hk install --mise"]
+
+[daemons.backend]
+task = "dev:backend"
+ready_port = 3000
+
+[daemons.frontend]
+task = "dev:frontend"
+depends = ["backend"]
+ready_port = 5173
+
+[tasks.check]
+description = "Выполнить все проверки проекта"
+depends = [
+  "lint",
+  "typecheck",
+  "test",
+  "test:api",
+  "verify:contract",
+  "scan:secrets",
+  "scan:vulnerabilities",
+]
+
+[tasks."setup:browsers"]
+description = "Установить Chromium для браузерного дымового теста"
+run = "pnpm --filter @calendar/smoke-tests exec playwright install --with-deps --only-shell chromium"
+
+[tasks.generate]
+description = "Сгенерировать OpenAPI, SDK и типы методов NestJS"
+run = "pnpm run generate"
+
+[tasks."build:sdk"]
+description = "Сгенерировать и собрать SDK"
+depends = ["generate"]
+run = "pnpm run build:sdk"
+
+[tasks.typecheck]
+description = "Проверить типы пакетов workspace"
+depends = ["build:sdk"]
+run = "pnpm run typecheck"
+
+[tasks."build:backend"]
+description = "Сгенерировать контракт, собрать SDK и backend"
+depends = ["build:sdk"]
+run = "pnpm run build:backend"
+
+[tasks."dev:backend"]
+description = "Запустить backend с перезапуском при изменениях"
+depends = ["build:sdk"]
+run = "pnpm run dev:backend"
+
+[tasks."start:backend"]
+description = "Собрать и запустить production-сборку backend"
+depends = ["build:backend"]
+run = "pnpm run start:backend"
+
+[tasks."verify:contract"]
+description = "Проверить цепочку генерации и HTTP-вызов SDK"
+depends = ["build:sdk"]
+run = "pnpm run verify:contract"
+
+[tasks."build:frontend"]
+description = "Сгенерировать контракт, собрать SDK и frontend"
+depends = ["build:sdk"]
+run = "pnpm run build:frontend"
+
+[tasks."dev:frontend"]
+description = "Запустить frontend с горячим обновлением"
+depends = ["build:sdk"]
+run = "pnpm run dev:frontend"
+
+[tasks."preview:frontend"]
+description = "Собрать и запустить локальный сервер production-версии frontend"
+depends = ["build:frontend"]
+run = "pnpm run preview:frontend"
+
+[tasks.test]
+description = "Собрать приложения и выполнить браузерный дымовой тест"
+depends = ["build:backend", "build:frontend"]
+run = "pnpm run test"
+
+[tasks."test:api"]
+description = "Проверить предметный HTTP API настоящего backend"
+depends = ["build:backend"]
+run = "pnpm run test:api"
+
+[tasks."test:docker"]
+description = "Собрать Docker-образ, проверить production-сценарий, PORT и сброс данных"
+run = "pnpm --filter @calendar/smoke-tests run test:docker"
+
+[tasks.lint]
+description = "Проверить код, стили, контракты, зависимости и форматирование"
+depends = [
+  "lint:code",
+  "lint:css",
+  "lint:format",
+  "lint:unused",
+  "lint:architecture",
+  "lint:versions",
+  "lint:commits",
+  "lint:openapi",
+  "lint:markdown",
+  "lint:generated",
+  "lint:typespec",
+  "lint:workflows",
+  "lint:agents",
+]
+
+[tasks."lint:agents"]
+description = "Проверить AGENTS.md через Agnix"
+run = "pnpm run lint:agents"
+
+[tasks."lint:workflows"]
+description = "Проверить workflow проекта через Jactionlint"
+run = "pnpm run lint:workflows"
+
+[tasks."lint:code"]
+description = "Проверить TS/JS через Oxlint"
+run = "pnpm run lint:code"
+
+[tasks."lint:css"]
+description = "Проверить CSS через Stylelint"
+run = "pnpm run lint:css"
+
+[tasks."lint:format"]
+description = "Проверить форматирование через oxfmt"
+run = "pnpm run lint:format"
+
+[tasks."lint:unused"]
+description = "Найти неиспользуемые файлы, экспорты и зависимости"
+depends = ["build:sdk"]
+run = "pnpm run lint:unused"
+
+[tasks."lint:architecture"]
+description = "Проверить циклы и границы пакетов"
+depends = ["build:sdk"]
+run = "pnpm run lint:architecture"
+
+[tasks."lint:versions"]
+description = "Проверить версии зависимостей workspace"
+run = "pnpm run lint:versions"
+
+[tasks."lint:commits"]
+description = "Проверить Conventional Commits"
+run = "pnpm run lint:commits"
+
+[tasks."lint:openapi"]
+description = "Проверить OpenAPI через Vacuum"
+depends = ["generate"]
+run = "pnpm run lint:openapi"
+
+[tasks."lint:markdown"]
+description = "Проверить Markdown через rumdl"
+run = "pnpm run lint:markdown"
+
+[tasks."lint:generated"]
+description = "Сравнить OpenAPI и SDK с повторной генерацией"
+depends = ["generate"]
+run = "pnpm run lint:generated"
+
+[tasks."lint:typespec"]
+description = "Проверить форматирование TypeSpec"
+run = "pnpm run lint:typespec"
+
+[tasks."scan:secrets"]
+description = "Проверить файлы проекта на секреты"
+run = "pnpm run scan:secrets"
+
+[tasks."scan:vulnerabilities"]
+description = "Проверить lockfile по базе OSV"
+run = "pnpm run scan:vulnerabilities"

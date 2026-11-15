@@ -1,0 +1,5 @@
+ignores:
+  - rule: dangerous-triggers
+    file: .github/workflows/opencode.yml
+    reason: Explicit command by a human with current write/admin permission checked in a separate job before secrets/OIDC; bots and fork PRs rejected; pinned legacy CLI. Approved by repository owner on 2026-11-15.
+    expires: '2026-12-15'
