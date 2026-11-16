@@ -89,6 +89,7 @@ jobs:
         run: opencode github run
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
-          MODEL: opencode/glm-5.3-flash-free
+          MODEL: opencode/minimax-m3
+          OPENCODE_CONFIG_CONTENT: '{"small_model":"opencode/minimax-m3"}'
           SHARE: 'false'
           USE_GITHUB_TOKEN: 'false'

@@ -25,7 +25,7 @@ GitHub Actions запускает `mise run setup` и `mise run check` на ка
 | `mise run lint:openapi` | Vacuum: ошибки и предупреждения OpenAPI |
 | `mise run lint:generated` | Сравнение OpenAPI и SDK с независимой повторной генерацией |
 | `mise run lint:markdown` | Rumdl: Markdown в каталогах приложений, пакетов и инструментов |
-| `mise run lint:workflows` | Jactionlint 2.4.0: проверки проекта, релизы, ручной OpenCode и автотриаж; тесты guard с фикстурами GitHub API |
+| `mise run lint:workflows` | Jactionlint 2.4.0: проверки, релизы, ручной OpenCode, автотриаж и авторевью; тесты допуска, контекста и публикации с фикстурами API |
 | `mise run lint:agents` | Agnix: инструкции в AGENTS.md |
 | `mise run scan:secrets` | Betterleaks: секреты в файлах с редактированием значений в отчёте |
 | `mise run scan:vulnerabilities` | OSV Scanner: уязвимости зависимостей из lockfile; нужен доступ к сети |
