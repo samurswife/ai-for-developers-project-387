@@ -28,7 +28,7 @@
     "scan:vulnerabilities": "osv-scanner scan source --lockfile pnpm-lock.yaml",
     "lint:generated": "node tools/quality/check-generated.mjs",
     "lint:typespec": "pnpm --filter @calendar/contract exec tsp format --check main.tsp",
-    "lint:workflows": "jactionlint --strict-exit .github/workflows/check.yml .github/workflows/release-please.yml .github/workflows/opencode.yml .github/workflows/opencode-triage.yml && node --test tools/opencode/triage-guard.test.mjs",
+    "lint:workflows": "jactionlint --strict-exit .github/workflows/check.yml .github/workflows/release-please.yml .github/workflows/opencode.yml .github/workflows/opencode-triage.yml .github/workflows/opencode-review.yml && node --test tools/opencode/*.test.mjs",
     "lint:agents": "agnix --strict --target codex AGENTS.md"
   },
   "devDependencies": {
