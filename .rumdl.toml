@@ -1,6 +1,8 @@
 [global]
 include = [
   "AGENTS.md",
+  "REVIEW.md",
+  ".github/pull_request_template.md",
   "apps/**/*.md",
   "packages/**/*.md",
   "specs/**/*.md",
