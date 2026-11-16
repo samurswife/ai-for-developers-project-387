@@ -81,7 +81,8 @@ async function execute(id, options = {}) {
         getContent: method('content', (input) => {
           if (options.missingFile === input.path) throw new Error('Missing file');
           const content =
-            input.path === 'REVIEW.md' ? 'Trusted review criteria' : `${input.ref}:${input.path}`;
+            options.contents?.[input.path] ??
+            (input.path === 'REVIEW.md' ? 'Trusted review criteria' : `${input.ref}:${input.path}`);
           return {
             type: 'file',
             encoding: 'base64',
@@ -284,6 +285,22 @@ test('missing required criteria fail closed, other missing evidence is recorded,
   assert.ok(saved.gaps.some((gap) => gap.includes('example/calendar#5:123: unavailable')));
   assert.ok(saved.gaps.some((gap) => gap.includes('outside allowed repositories')));
   assert.equal(saved.sources.length, 0);
+});
+
+test('context includes the complete security workflow and long specification through their final lines', async () => {
+  const filename = '.github/workflows/opencode-review.yml';
+  const specification = `${'x'.repeat(17000)}\nEnd of specification`;
+  const result = await execute('context', {
+    changes: [{ filename, status: 'added', patch: workflow }],
+    contents: { [filename]: workflow },
+    sourceBody: specification,
+  });
+  const saved = JSON.parse(result.files.get('/runner-temp/opencode-review/context.json'));
+  assert.equal(saved.changes[0].content, workflow);
+  assert.equal(saved.changes[0].patch, workflow);
+  assert.equal(saved.sources[0].body, specification);
+  assert.match(saved.changes[0].content, /if \(reason\) core.setFailed/);
+  assert.ok(!saved.gaps.some((gap) => gap.includes('truncated')));
 });
 
 test('a push during collection stops the model and source traversal is bounded', async () => {
