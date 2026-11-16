@@ -73,6 +73,10 @@ async function execute(id, options = {}) {
             ],
         ),
         listReviewComments: method('review-comments', () => options.reviewComments ?? []),
+        listReviews: method(
+          'reviews',
+          ({ page = 1 }) => options.reviewPages?.[page - 1] ?? options.reviews ?? [],
+        ),
       },
       repos: {
         getCollaboratorPermissionLevel: method('permission', ({ username }) => ({
@@ -140,7 +144,14 @@ async function execute(id, options = {}) {
         })),
       },
     },
-    paginate: async (fn, input) => (await fn(input)).data,
+    paginate: async (fn, input) => {
+      const items = [];
+      for (let page = 1; ; page++) {
+        const { data } = await fn({ ...input, page });
+        items.push(...data);
+        if (data.length < input.per_page) return items;
+      }
+    },
   };
   const context = {
     payload: { pull_request: event, repository: { full_name: 'example/calendar' } },
@@ -269,6 +280,85 @@ test('context uses base criteria, exact-head snapshots, issue approvals, both co
       .filter((item) => item.name === 'content' && item.input.path !== 'app.ts')
       .every((item) => item.input.ref === 'base-sha'),
   );
+});
+
+test('a Request changes summary without discussion or inline comments reaches the next review', async () => {
+  const review = {
+    id: 91,
+    user: { login: 'reviewer', type: 'User' },
+    author_association: 'COLLABORATOR',
+    state: 'CHANGES_REQUESTED',
+    body: 'A booked interval can still be selected. Keep this problem in the next review.',
+    commit_id: 'previous-head-sha',
+    submitted_at: '2026-11-16T12:00:00Z',
+    html_url: 'https://github.com/example/calendar/pull/42#pullrequestreview-91',
+  };
+  const result = await execute('context', { reviews: [review], comments: [], reviewComments: [] });
+  const saved = JSON.parse(result.files.get('/runner-temp/opencode-review/context.json'));
+  assert.equal(result.outputs.get('ready'), 'true');
+  assert.deepEqual(saved.prior_comments, []);
+  assert.deepEqual(saved.prior_reviews, [
+    {
+      author: 'reviewer',
+      type: 'User',
+      association: 'COLLABORATOR',
+      state: 'CHANGES_REQUESTED',
+      commit_id: 'previous-head-sha',
+      submitted_at: review.submitted_at,
+      url: review.html_url,
+      body: review.body,
+    },
+  ]);
+  assert.deepEqual(saved.gaps, []);
+});
+
+test('review summaries use pagination and retain the latest decisions across pages', async () => {
+  const page = Array.from({ length: 100 }, (_, index) => ({
+    body: `Review ${index}`,
+    state: 'CHANGES_REQUESTED',
+    commit_id: `sha-${index}`,
+    html_url: `https://github.com/example/calendar/pull/42#pullrequestreview-${index}`,
+  }));
+  const result = await execute('context', {
+    reviewPages: [
+      page,
+      [
+        {
+          body: 'The previously requested correction is accepted.',
+          state: 'APPROVED',
+          commit_id: 'head-sha',
+          html_url: 'https://github.com/example/calendar/pull/42#pullrequestreview-100',
+        },
+      ],
+    ],
+  });
+  const saved = JSON.parse(result.files.get('/runner-temp/opencode-review/context.json'));
+  assert.deepEqual(
+    result.calls.filter((call) => call.name === 'reviews').map((call) => call.input),
+    [
+      { owner: 'example', repo: 'calendar', pull_number: 42, per_page: 100, page: 1 },
+      { owner: 'example', repo: 'calendar', pull_number: 42, per_page: 100, page: 2 },
+    ],
+  );
+  assert.equal(saved.prior_reviews.length, 20);
+  assert.equal(saved.prior_reviews[0].body, 'Review 81');
+  assert.equal(saved.prior_reviews.at(-1).state, 'APPROVED');
+  assert.equal(saved.prior_reviews.at(-1).commit_id, 'head-sha');
+  assert.ok(saved.gaps.includes('Only the last 20 PR review summaries included'));
+});
+
+test('missing reviews and truncated review text are explicit gaps instead of silently empty history', async () => {
+  const missing = await execute('context', { fail: 'reviews' });
+  const missingContext = JSON.parse(missing.files.get('/runner-temp/opencode-review/context.json'));
+  assert.equal(missing.outputs.get('ready'), 'true');
+  assert.deepEqual(missingContext.prior_reviews, []);
+  assert.ok(missingContext.gaps.includes('PR review summaries are unavailable'));
+  const long = await execute('context', {
+    reviews: [{ state: 'CHANGES_REQUESTED', body: 'x'.repeat(6001), html_url: 'review-url' }],
+  });
+  const longContext = JSON.parse(long.files.get('/runner-temp/opencode-review/context.json'));
+  assert.equal(longContext.prior_reviews[0].body.length, 6000);
+  assert.ok(longContext.gaps.includes('review-url: truncated at 6000 characters'));
 });
 
 test('missing required criteria fail closed, other missing evidence is recorded, and unrelated approval comments are rejected', async () => {

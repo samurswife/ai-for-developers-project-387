@@ -117,9 +117,13 @@ jobs:
             for (const entry of files.slice(0, 30)) {
               if (!entry.patch) gaps.push(`patch:${entry.filename}: unavailable`);
             }
-            const [comments, reviews, checks, statuses, runs] = await Promise.all([
+            const [comments, reviewComments, reviews, checks, statuses, runs] = await Promise.all([
               github.paginate(github.rest.issues.listComments, { ...context.repo, issue_number: pr.number, per_page: 100 }),
               github.paginate(github.rest.pulls.listReviewComments, { ...context.repo, pull_number: pr.number, per_page: 100 }),
+              github.paginate(github.rest.pulls.listReviews, { ...context.repo, pull_number: pr.number, per_page: 100 }).catch(() => {
+                gaps.push('PR review summaries are unavailable');
+                return [];
+              }),
               github.rest.checks.listForRef({ ...context.repo, ref: pr.head.sha, per_page: 100 }),
               github.rest.repos.getCombinedStatusForRef({ ...context.repo, ref: pr.head.sha, per_page: 100 }),
               github.rest.actions.listWorkflowRunsForRepo({ ...context.repo, head_sha: pr.head.sha, per_page: 30 }),
@@ -162,12 +166,16 @@ jobs:
               } catch { gaps.push(`${key}: unavailable`); }
             }
             if (queue.length) gaps.push('Source traversal stopped at 20 sources or 40 lookups');
-            if (comments.length > 20 || reviews.length > 20) gaps.push('Only the last 20 comments of each PR comment channel included');
+            if (comments.length > 20 || reviewComments.length > 20) gaps.push('Only the last 20 comments of each PR comment channel included');
+            if (reviews.length > 20) gaps.push('Only the last 20 PR review summaries included');
             if (checks.data.total_count > checks.data.check_runs.length || statuses.data.total_count > statuses.data.statuses.length || runs.data.total_count > runs.data.workflow_runs.length) gaps.push('CI history is incomplete');
             const reviewContext = { repository, base_sha: pr.base.sha, head_sha: pr.head.sha, trusted,
               pull_request: { number: pr.number, title: pr.title, body: clip(pr.body, 16000, 'PR body'), url: pr.html_url }, changes, sources, gaps,
-              prior_comments: [...comments.slice(-20), ...reviews.slice(-20)].map((comment) => ({ author: comment.user?.login,
+              prior_comments: [...comments.slice(-20), ...reviewComments.slice(-20)].map((comment) => ({ author: comment.user?.login,
                 url: comment.html_url, path: comment.path, line: comment.line, body: clip(comment.body, 3000, comment.html_url) })),
+              prior_reviews: reviews.slice(-20).map((review) => ({ author: review.user?.login, type: review.user?.type,
+                association: review.author_association, state: review.state, commit_id: review.commit_id,
+                submitted_at: review.submitted_at, url: review.html_url, body: clip(review.body, 6000, review.html_url) })),
               ci: { checks: checks.data.check_runs.map((check) => ({ name: check.name, status: check.status, conclusion: check.conclusion, url: check.html_url })),
                 statuses: statuses.data.statuses.map((status) => ({ context: status.context, state: status.state, url: status.target_url })),
                 runs: runs.data.workflow_runs.map((run) => ({ name: run.name, status: run.status, conclusion: run.conclusion, url: run.html_url })) } };
