@@ -314,6 +314,14 @@ test('changed-file truncation and missing patches are visible review gaps', asyn
 
 const textEvent = (text) => JSON.stringify({ type: 'text', part: { text } });
 
+test('the observed duration-only response fails review instead of producing a green check', async () => {
+  const result = await execute('publish', {
+    events: [textEvent('21.1s'), textEvent('21.1s')].join('\n'),
+  });
+  assert.equal(result.failures.length, 1);
+  assert.match(result.calls.find((call) => call.name === 'publish').input.body, /agent_failed/);
+});
+
 test('publisher posts only final text with checked SHA/model/log link, without reasoning or tool output', async () => {
   const result = await execute('publish', {
     events: [
@@ -387,6 +395,7 @@ test('all OpenCode paths select MiniMax M3 and the review has no checkout, token
   );
   assert.doesNotMatch(modelStep, /GITHUB_TOKEN|GH_TOKEN|github\.token/);
   assert.match(modelStep, /"permission":\{"\*":"deny"\}/);
+  assert.match(modelStep, /"steps":2/);
   assert.match(modelStep, /OPENCODE_DISABLE_PROJECT_CONFIG: 'true'/);
   assert.match(modelStep, /timeout --signal=TERM --kill-after=20s 10m/);
   assert.match(workflow, /cancel-in-progress: true/);
