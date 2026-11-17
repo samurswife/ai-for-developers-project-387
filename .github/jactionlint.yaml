@@ -5,5 +5,5 @@ ignores:
     expires: '2026-12-15'
   - rule: dangerous-triggers
     file: .github/workflows/opencode-result.yml
-    reason: Model-free completion reporter must survive cancellation of OpenCode. It reads authenticated run/job metadata only, validates workflow identity and repository, and writes a fixed result comment; no checkout, artifacts, secrets, OIDC or execution of source-run content. Requires owner approval of this exception and issues write before merge.
+    reason: Model-free completion reporter must survive cancellation of OpenCode. It reads authenticated run/job metadata only, validates workflow identity and repository, and writes a fixed result comment; no checkout, artifacts, secrets, OIDC or execution of source-run content. Issues write and the exception were approved in PR 19; pull-requests write for PR comments requires owner approval in PR for issue 22 before merge.
     expires: '2026-12-17'

@@ -120,7 +120,7 @@ Workflow [OpenCode](.github/workflows/opencode.yml) запускает аген�
 а job авторизации фильтрует комментарии по этим же словам до checkout и передачи секрета.
 Исполняющий job повторяет проверку доступа и проверяет бюджет по истории Actions до каждого вызова модели.
 Отдельный [OpenCode Result](.github/workflows/opencode-result.yml) публикует причину, последний SHA и ссылку
-на логи без модели, в том числе после отмены запроса. У него `actions/pull-requests: read`, `issues: write`;
+на логи без модели, в том числе после отмены запроса. У него `actions: read`, `issues/pull-requests: write`;
 секреты, OIDC и checkout отсутствуют. Подробности — [предел запусков](docs/opencode.md#предел-запусков-на-pr).
 
 Новые issue разбираются автоматически отдельным workflow
