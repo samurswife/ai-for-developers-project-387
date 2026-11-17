@@ -580,7 +580,9 @@ namespace MeetingTypes {
 namespace CalendarSettings {
   /** Read the current calendar settings for the single owner. */
   @get
-  @opExample(#{ returnType: #{ statusCode: 200, body: #{ timeZone: "Europe/Moscow" } } })
+  @opExample(#{
+    returnType: #{ statusCode: 200, body: #{ timeZone: "Europe/Moscow" } },
+  })
   @opExample(#{
     returnType: #{
       statusCode: 500,
@@ -601,10 +603,7 @@ namespace CalendarSettings {
   @put
   @opExample(#{
     parameters: #{ body: #{ timeZone: "Asia/Krasnoyarsk" } },
-    returnType: #{
-      statusCode: 200,
-      body: #{ timeZone: "Asia/Krasnoyarsk" },
-    },
+    returnType: #{ statusCode: 200, body: #{ timeZone: "Asia/Krasnoyarsk" } },
   })
   @opExample(#{
     returnType: #{

@@ -5,10 +5,10 @@
  * Returned UTC instants survive DST changes; the local-clock grid is anchored
  * to the owner zone for each date.
  */
-export const WINDOW_LENGTH_DAYS = 14;
-export const WINDOW_START_HOUR = 9;
-export const WINDOW_END_HOUR = 18;
-export const GRID_MINUTES = 15;
+const WINDOW_LENGTH_DAYS = 14;
+const WINDOW_START_HOUR = 9;
+const WINDOW_END_HOUR = 18;
+const GRID_MINUTES = 15;
 const MS_PER_MINUTE = 60_000;
 
 /** Local-clock parts of the supplied instant in the owner zone. */
