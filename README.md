@@ -101,6 +101,10 @@ Render Free может запускаться около минуты после
 
 ## OpenCode в GitHub
 
+CI `Project checks` проверяет PR в `main` и push основной ветки. Отдельный `browser-head` запускает
+приложение из точного head SHA PR и сохраняет результат, Playwright trace и скриншоты в артефакт Actions.
+Порядок сверки версии и свидетельств перед мержем — в [docs/ci.md](docs/ci.md).
+
 Workflow [OpenCode](.github/workflows/opencode.yml) запускает агента OpenCode по команде
 в комментарии: он читает [правила проекта](AGENTS.md), настройки из [docs/agents/](docs/agents/)
 и использует скиллы из `.agents/skills/`. Подробная инструкция — [docs/opencode.md](docs/opencode.md).
@@ -217,6 +221,7 @@ mise run setup
 | `mise run typecheck` | Проверка типов |
 | `mise run test` | Браузерный дымовой тест frontend и backend |
 | `mise run test:api` | HTTP-тесты настоящего backend по OpenAPI |
+| `mise run test:evidence` | Браузерные тесты с SHA, результатами, trace и скриншотами |
 | `mise run test:docker` | Сборка Docker, production-сценарий, разные `PORT` и сброс данных после перезапуска |
 | `mise run verify:contract` | Проверка генерации API и SDK |
 | `mise run lint` | Линтеры |

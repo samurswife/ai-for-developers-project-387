@@ -104,6 +104,11 @@ description = "Проверить предметный HTTP API настояще
 depends = ["build:backend"]
 run = "pnpm run test:api"
 
+[tasks."test:evidence"]
+description = "Проверить браузерную версию HEAD и сохранить trace, скриншоты, результаты и SHA"
+depends = ["build:backend", "build:frontend"]
+run = "pnpm run test:evidence"
+
 [tasks."test:docker"]
 description = "Собрать Docker-образ, проверить production-сценарий, PORT и сброс данных"
 run = "pnpm --filter @calendar/smoke-tests run test:docker"

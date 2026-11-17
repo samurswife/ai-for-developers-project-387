@@ -3,15 +3,18 @@ import { chromium, type Browser } from 'playwright';
 import { expect, test } from 'vitest';
 import type { Availability, MeetingType } from '@calendar/api-sdk';
 import { startBackend } from './apps.js';
+import { browserEvidence } from './browser-evidence.js';
 
 test('production serves the SPA and API, accepts a guest booking and rejects a stale overlapping booking', async () => {
   const backend = process.env.DEPLOYMENT_URL
     ? { url: process.env.DEPLOYMENT_URL.replace(/\/$/, ''), close: async () => {} }
     : await startBackend([], { NODE_ENV: 'production', HOST: '0.0.0.0' });
   let browser: Browser | undefined;
+  let finishEvidence: Awaited<ReturnType<typeof browserEvidence>> | undefined;
   try {
     browser = await chromium.launch();
     const context = await browser.newContext();
+    finishEvidence = await browserEvidence(context);
     context.setDefaultTimeout(15_000);
     const errors: string[] = [];
     context.on('page', (page) => page.on('pageerror', (error) => errors.push(error.message)));
@@ -122,6 +125,10 @@ test('production serves the SPA and API, accepts a guest booking and rejects a s
     expect(await meetings.getByText('Второй гость', { exact: true }).count()).toBe(0);
     expect(errors).toEqual([]);
   } finally {
-    await Promise.all([browser?.close(), backend.close()]);
+    try {
+      await finishEvidence?.();
+    } finally {
+      await Promise.all([browser?.close(), backend.close()]);
+    }
   }
 }, 120_000);

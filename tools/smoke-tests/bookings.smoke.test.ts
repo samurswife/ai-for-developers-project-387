@@ -76,7 +76,14 @@ test('guest books through SDK, reloads confirmation, navigates back without POST
     await page.reload();
     await page.getByRole('heading', { name: 'Вы записаны', exact: true }).waitFor();
     await page.goBack();
-    await page.goForward();
+    // Returning to the already booked start triggers the normal availability recovery.
+    // Wait for that read/redirect before reopening the saved confirmation in the same tab.
+    await page
+      .getByRole('alert')
+      .filter({ hasText: 'Выбранное время больше недоступно. Выберите другой слот.' })
+      .waitFor();
+    expect(posts).toBe(1);
+    await page.goto(confirmation);
     await page.getByRole('heading', { name: 'Вы записаны', exact: true }).waitFor();
     expect(posts).toBe(1);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
