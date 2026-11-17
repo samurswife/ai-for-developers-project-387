@@ -32,6 +32,12 @@ GitHub Actions запускает `mise run setup` и `mise run check` для PR
 | `mise run scan:secrets` | Betterleaks: секреты в файлах с редактированием значений в отчёте |
 | `mise run scan:vulnerabilities` | OSV Scanner: уязвимости зависимостей из lockfile; нужен доступ к сети |
 
+`tools/opencode/environment.test.mjs` проверяет подготовку среды до модели и настройки разрешений ручного workflow.
+В `Project checks` переменная `OPENCODE_PERMISSION_PROBE=true` дополнительно включает интеграционную проверку:
+закреплённый CLI загружается с SHA-256 и выполняет реальные команды проверки разрешений из workflow без ключа
+и вызова модели. Прежние настройки должны давать `ask` для `/home/runner/*`, новые — `deny`.
+Для локальной проверки уже загруженным CLI `v1.19.4` задайте также `OPENCODE_TEST_CLI=/путь/к/opencode`.
+
 Для обновления сгенерированных файлов используйте `mise run generate`, для проверки типов — `mise run typecheck`.
 
 `lint:commits` проверяет полные сообщения всех коммитов, включая merge-коммиты, от базового коммита
