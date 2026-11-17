@@ -6,6 +6,7 @@ import { chromium, type Browser } from 'playwright';
 import { preview, type PreviewServer } from 'vite';
 import { expect, test } from 'vitest';
 import openapi from '../../specs/generated/openapi.json' with { type: 'json' };
+import { browserEvidence } from './browser-evidence.js';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 
@@ -20,6 +21,7 @@ test('home page keeps its layout and links to ready sections; API proxy matches 
   let startupTimer: ReturnType<typeof setTimeout> | undefined;
   let frontend: PreviewServer | undefined;
   let browser: Browser | undefined;
+  let finishEvidence: Awaited<ReturnType<typeof browserEvidence>> | undefined;
   const ready = new Promise<string>((resolve, reject) => {
     startupTimer = setTimeout(() => {
       reject(new Error(`Backend did not start within 10 seconds:\n${output}`));
@@ -54,7 +56,9 @@ test('home page keeps its layout and links to ready sections; API proxy matches 
     const frontendUrl = `http://127.0.0.1:${address.port}`;
 
     browser = await chromium.launch({ timeout: 10_000 });
-    const page = await browser.newPage();
+    const context = await browser.newContext();
+    finishEvidence = await browserEvidence(context);
+    const page = await context.newPage();
     page.setDefaultTimeout(5000);
     const pageErrors: string[] = [];
     const apiRequests: string[] = [];
@@ -116,7 +120,11 @@ test('home page keeps its layout and links to ready sections; API proxy matches 
   } finally {
     clearTimeout(startupTimer);
     try {
-      await browser?.close();
+      try {
+        await finishEvidence?.();
+      } finally {
+        await browser?.close();
+      }
     } finally {
       try {
         if (frontend) {

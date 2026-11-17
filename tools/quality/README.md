@@ -7,7 +7,9 @@
 `mise exec -- hk install --mise`.
 
 Перед коммитом hk запускает `mise run check`, затем проверяет сообщение по Conventional Commits.
-GitHub Actions запускает `mise run setup` и `mise run check` на каждый push через `.github/workflows/check.yml`.
+GitHub Actions запускает `mise run setup` и `mise run check` для PR в `main`, push основной ветки
+и ручного запуска через `.github/workflows/check.yml`. Отдельный `browser-head` сохраняет свидетельства
+точного head SHA; формат и проверка — в [docs/ci.md](../../docs/ci.md).
 
 | Команда | Проверка |
 | --- | --- |
