@@ -12,12 +12,7 @@ import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { BookingDetails } from './BookingDetails';
 import { bookingDraft, navigate, resetBookingDraft, updateBookingDraft } from './booking-scenario';
-import {
-  detectBrowserTimeZone,
-  listSupportedTimeZones,
-  ownerZoneLabel,
-  zoneLabel,
-} from './time-zone';
+import { guestZoneFromPath, ownerZoneLabel, zoneLabel } from './time-zone';
 import { useReadLifecycle } from './use-read-lifecycle';
 
 async function readSelection(id: string, start: string | null, signal: AbortSignal) {
@@ -53,18 +48,11 @@ async function readSelection(id: string, start: string | null, signal: AbortSign
       }
       return { status: 'error' as const };
     }
-    const ownerTimeZone = settings?.data?.timeZone ?? slots.data.timeZone ?? 'Europe/Moscow';
+    const ownerTimeZone = settings?.data?.timeZone ?? slots.data.timeZone;
     return { status: 'ready' as const, meetingType: type.data, slot, ownerTimeZone };
   } catch {
     return { status: 'error' as const };
   }
-}
-
-/** Guest zone carried through the booking path in the URL, never sent to the server. */
-function guestZoneFromPath(): string {
-  const param = new URLSearchParams(location.search).get('tz');
-  const zones = listSupportedTimeZones();
-  return param && zones.includes(param) ? param : detectBrowserTimeZone();
 }
 
 export function BookingPage({ id }: { id: string }) {

@@ -3,14 +3,7 @@ import { calendarSettingsGetCalendarSettings, type Booking } from '@calendar/api
 import { api } from '@/lib/api';
 import { BookingDetails } from './BookingDetails';
 import { resetBookingDraft } from './booking-scenario';
-import {
-  detectBrowserTimeZone,
-  listSupportedTimeZones,
-  ownerZoneLabel,
-  zoneLabel,
-} from './time-zone';
-
-const DEFAULT_OWNER_TIME_ZONE = 'Europe/Moscow';
+import { guestZoneFromPath, ownerZoneLabel, zoneLabel } from './time-zone';
 
 export function ConfirmationPage({ id }: { id: string }) {
   let booking: Booking | undefined;
@@ -20,9 +13,10 @@ export function ConfirmationPage({ id }: { id: string }) {
   } catch {
     /* Missing or unreadable tab data does not cancel a booking. */
   }
+  const hasBooking = !!booking && booking.id === id;
   const [ownerTimeZone, setOwnerTimeZone] = useState<string | null>(null);
   useEffect(() => {
-    if (!booking) return undefined;
+    if (!hasBooking) return undefined;
     const controller = new AbortController();
     calendarSettingsGetCalendarSettings({ client: api, signal: controller.signal })
       .then((result) => {
@@ -30,11 +24,11 @@ export function ConfirmationPage({ id }: { id: string }) {
         return undefined;
       })
       .catch(() => {
-        /* Keep the guest-only view; the owner zone stays unknown without settings. */
+        /* Without settings the owner representation stays hidden rather than guessed. */
       });
     return () => controller.abort();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
+    // Settings are global owner state; refetch when tab-only booking data appears or disappears.
+  }, [hasBooking]);
   if (!booking)
     return (
       <section className="page-panel">
@@ -50,10 +44,7 @@ export function ConfirmationPage({ id }: { id: string }) {
         </a>
       </section>
     );
-  const param = new URLSearchParams(location.search).get('tz');
-  const zones = listSupportedTimeZones();
-  const guestZone = param && zones.includes(param) ? param : detectBrowserTimeZone();
-  const secondaryZone = ownerTimeZone ?? DEFAULT_OWNER_TIME_ZONE;
+  const guestZone = guestZoneFromPath();
   return (
     <section className="max-w-2xl">
       <h1 className="text-3xl font-semibold">Вы записаны</h1>
@@ -64,8 +55,8 @@ export function ConfirmationPage({ id }: { id: string }) {
           endsAt={booking.endsAt}
           primaryTimeZone={guestZone}
           primaryZoneLabel={zoneLabel(guestZone)}
-          secondaryTimeZone={secondaryZone}
-          secondaryZoneLabel={ownerZoneLabel(secondaryZone)}
+          secondaryTimeZone={ownerTimeZone ?? undefined}
+          secondaryZoneLabel={ownerTimeZone ? ownerZoneLabel(ownerTimeZone) : undefined}
         />
         <p className="break-words">{booking.guestName}</p>
         <p className="break-all">{booking.guestEmail}</p>

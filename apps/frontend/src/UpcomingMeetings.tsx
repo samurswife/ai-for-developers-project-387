@@ -7,15 +7,13 @@ import {
 import { Button } from '@/components/ui/button';
 import { api } from '@/lib/api';
 import { BookingDetails } from './BookingDetails';
-import { ownerZoneLabel } from './time-zone';
+import { DEFAULT_OWNER_TIME_ZONE, ownerZoneLabel } from './time-zone';
 import { useReadLifecycle } from './use-read-lifecycle';
 
 type MeetingsState =
   | { status: 'loading' }
   | { status: 'error' }
   | { status: 'ready'; items: Booking[]; timeZone: string };
-
-const DEFAULT_OWNER_TIME_ZONE = 'Europe/Moscow';
 
 export function UpcomingMeetings() {
   const [state, setState] = useState<MeetingsState>({ status: 'loading' });

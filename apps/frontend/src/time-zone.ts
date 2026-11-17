@@ -1,5 +1,8 @@
 import type { Availability, AvailabilityDay, Slot } from '@calendar/api-sdk';
 
+/** Owner zone used only when the server has not answered the settings request yet. */
+export const DEFAULT_OWNER_TIME_ZONE = 'Europe/Moscow';
+
 /** Read the IANA time zone reported by the running browser. */
 export function detectBrowserTimeZone(): string {
   try {
@@ -9,6 +12,16 @@ export function detectBrowserTimeZone(): string {
     /* Fall through to the default below for non-Intl environments. */
   }
   return 'UTC';
+}
+
+/**
+ * Guest zone carried along the booking path as the `tz` query parameter,
+ * never sent to the server. An absent or unsupported value falls back to
+ * the browser zone; the choice itself is never stored between sessions.
+ */
+export function guestZoneFromPath(): string {
+  const param = new URLSearchParams(location.search).get('tz');
+  return param && listSupportedTimeZones().includes(param) ? param : detectBrowserTimeZone();
 }
 
 /** Sorted list of IANA zones supported by the runtime, for the manual selector. */

@@ -10,6 +10,7 @@ import { api } from '@/lib/api';
 import { bookingDraft, navigate } from './booking-scenario';
 import {
   detectBrowserTimeZone,
+  guestZoneFromPath,
   listSupportedTimeZones,
   regroupAvailabilityByZone,
   zoneLabel,
@@ -79,10 +80,7 @@ export function AvailabilityPage({ id }: { id: string }) {
   const [state, setState] = useState<CalendarState>({ status: 'loading' });
   const [zones] = useState<string[]>(listSupportedTimeZones);
   const [browserZone] = useState<string>(detectBrowserTimeZone);
-  const [pickedZone, setPickedZone] = useState<string | null>(() => {
-    const param = new URLSearchParams(location.search).get('tz');
-    return param && zones.includes(param) ? param : null;
-  });
+  const [pickedZone, setPickedZone] = useState<string | null>(guestZoneFromPath);
   const retry = useReadLifecycle(
     useCallback((signal: AbortSignal) => readCalendar(id, signal), [id]),
     () => setState({ status: 'loading' }),
