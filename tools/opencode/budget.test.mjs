@@ -302,6 +302,14 @@ const reporter = readFileSync(
   new URL('../../.github/workflows/opencode-result.yml', import.meta.url),
   'utf8',
 );
+const reporterPermissions = Object.fromEntries(
+  reporter
+    .split('    permissions:\n')[1]
+    .split('    steps:')[0]
+    .trim()
+    .split('\n')
+    .map((line) => line.trim().split(': ')),
+);
 async function report(options = {}) {
   const comments = [];
   const steps = (
@@ -344,7 +352,19 @@ async function report(options = {}) {
       },
       issues: {
         listComments: async () => ({ data: options.comments ?? [] }),
-        createComment: async (input) => comments.push(input),
+        createComment: async (input) => {
+          const permissions = options.permissions ?? reporterPermissions;
+          // Mirror the 403 observed on PR #21 with issues:write + pull-requests:read.
+          const resource = current.display_title.startsWith('OpenCode PR #')
+            ? 'pull-requests'
+            : 'issues';
+          if (permissions[resource] !== 'write') {
+            throw Object.assign(new Error('Resource not accessible by integration'), {
+              status: 403,
+            });
+          }
+          comments.push(input);
+        },
       },
     },
     paginate: async (method, input) => {
@@ -365,6 +385,21 @@ async function report(options = {}) {
   );
   return comments;
 }
+
+test('publication respects configured PR and issue permissions, reproducing the observed 403', async () => {
+  await assert.rejects(report({ permissions: { issues: 'write', 'pull-requests': 'read' } }), {
+    status: 403,
+  });
+  assert.equal((await report()).length, 1);
+  assert.equal((await report({ run: { display_title: 'OpenCode issue #42' } })).length, 1);
+  await assert.rejects(
+    report({
+      run: { display_title: 'OpenCode issue #42' },
+      permissions: { issues: 'read', 'pull-requests': 'write' },
+    }),
+    { status: 403 },
+  );
+});
 
 test('model-free exhaustion report includes reason, latest PR SHA, exact attempt logs and human status', async () => {
   const [comment] = await report();
@@ -439,7 +474,8 @@ test('reporter has no model, checkout, artifacts, credentials or source-run code
     /actions\/checkout|download-artifact|secrets\.|id-token: write|child_process|execSync|spawn\(|eval\(|require\(/,
   );
   assert.match(reporter, /issues: write/);
-  assert.doesNotMatch(reporter, /contents: write|actions: write|pull-requests: write/);
+  assert.match(reporter, /pull-requests: write/);
+  assert.doesNotMatch(reporter, /contents: write|actions: write/);
 });
 
 test('actual CLI result classifier distinguishes failure reasons and redacts key and bearer credentials', () => {
