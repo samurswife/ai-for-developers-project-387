@@ -112,12 +112,16 @@ Workflow [OpenCode](.github/workflows/opencode.yml) запускает аген�
 | Модель | `opencode/minimax-m3` во всех сценариях; вспомогательные запросы используют ту же модель |
 | Секрет | `OPENCODE_API_KEY`; значение добавляет владелец в Settings, в репозитории его нет |
 | Sharing | `SHARE=false`, публичная ссылка на сессию не создаётся |
-| Авторизация | Стандартный OIDC через [OpenCode Agent App](https://github.com/apps/opencode-agent); `contents: read`, `id-token: write`, `persist-credentials: false` |
+| Авторизация | OIDC через [OpenCode Agent App](https://github.com/apps/opencode-agent); `contents/actions/pull-requests: read`, `id-token: write`, `persist-credentials: false` |
 | Кто вызывает | Доверенный человек с текущими правами `write`/`admin`, совпадающий с автором комментария; боты и PR из форков отклоняются |
-| Ограничения | Проверка доступа — 2 минуты, работа агента — 15; запуски одного issue/PR сериализованы по его номеру |
+| Ограничения | 3 допущенных запроса на PR, общих для обоих видов комментариев; Re-run, отмена и тайм-аут расходуют попытку. Модель — до 45 минут, job — 50; сериализация по номеру issue/PR |
 
 Команда проверяется дважды: CLI распознаёт mentions `default` (`/oc`, `/opencode`),
 а job авторизации фильтрует комментарии по этим же словам до checkout и передачи секрета.
+Исполняющий job повторяет проверку доступа и проверяет бюджет по истории Actions до каждого вызова модели.
+Отдельный [OpenCode Result](.github/workflows/opencode-result.yml) публикует причину, последний SHA и ссылку
+на логи без модели, в том числе после отмены запроса. У него `actions/pull-requests: read`, `issues: write`;
+секреты, OIDC и checkout отсутствуют. Подробности — [предел запусков](docs/opencode.md#предел-запусков-на-pr).
 
 Новые issue разбираются автоматически отдельным workflow
 [opencode-triage.yml](.github/workflows/opencode-triage.yml) на событии `issues: [opened]`.

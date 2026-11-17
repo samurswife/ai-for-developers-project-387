@@ -3,3 +3,7 @@ ignores:
     file: .github/workflows/opencode.yml
     reason: Explicit command by a human with current write/admin permission checked in a separate job before secrets/OIDC; bots and fork PRs rejected; pinned legacy CLI. Approved by repository owner on 2026-11-15.
     expires: '2026-12-15'
+  - rule: dangerous-triggers
+    file: .github/workflows/opencode-result.yml
+    reason: Model-free completion reporter must survive cancellation of OpenCode. It reads authenticated run/job metadata only, validates workflow identity and repository, and writes a fixed result comment; no checkout, artifacts, secrets, OIDC or execution of source-run content. Requires owner approval of this exception and issues write before merge.
+    expires: '2026-12-17'
