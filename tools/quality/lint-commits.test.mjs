@@ -100,20 +100,20 @@ test('history lint accepts an empty range', (t) => {
   assert.match(result.stdout, /No commits/);
 });
 
-test('an explicit published-history boundary excludes old violations but rejects the same new violation', (t) => {
+test('only the exact published commit is exempt; copying its message still fails', (t) => {
+  const published = '5a121e816e4f18b95cb9728865f744407723bd2d';
+  const source = fileURLToPath(new URL('../../', import.meta.url));
   const { git, commit, lint } = fixture(t);
-  commit(`ci: published message\n\n${longBody}`);
-  const published = git('rev-parse', 'HEAD');
-  commit('fix: validate future squash messages (#32)');
-  const retrospective = lint();
-  assert.equal(retrospective.status, 1, retrospective.stdout + retrospective.stderr);
-  assert.match(retrospective.stdout + retrospective.stderr, /body-max-line-length/);
-  const afterBoundary = lint('--from', published);
-  assert.equal(afterBoundary.status, 0, afterBoundary.stdout + afterBoundary.stderr);
-  commit(`fix: new message still must comply (#32)\n\n${longBody}`);
-  const newViolation = lint('--from', published);
-  assert.equal(newViolation.status, 1, newViolation.stdout + newViolation.stderr);
-  assert.match(newViolation.stdout + newViolation.stderr, /body-max-line-length/);
+  git('fetch', '--quiet', '--no-tags', source, published);
+  git('checkout', '--quiet', '--detach', published);
+  const parent = git('rev-parse', `${published}^`);
+  const exempt = lint('--from', parent);
+  assert.equal(exempt.status, 0, exempt.stdout + exempt.stderr);
+  assert.match(exempt.stderr, new RegExp(`Known published-message exception: ${published}`));
+  commit(git('show', '--no-patch', '--format=%B', published));
+  const copied = lint('--from', parent);
+  assert.equal(copied.status, 1, copied.stdout + copied.stderr);
+  assert.match(copied.stdout + copied.stderr, /body-max-line-length/);
 });
 
 test('history lint rejects missing revisions', (t) => {
