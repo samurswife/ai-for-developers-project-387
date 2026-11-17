@@ -1,8 +1,5 @@
 import { Body, Controller, Get, HttpException, Put } from '@nestjs/common';
-import type {
-  CalendarSettingsBody,
-  UpdateCalendarSettingsRequest,
-} from '@calendar/api-sdk';
+import type { CalendarSettingsBody, UpdateCalendarSettingsRequest } from '@calendar/api-sdk';
 import type { CalendarSettingsControllerMethods } from '@calendar/api-sdk/nestjs';
 import { calendar, isValidIanaTimeZone } from './calendar.js';
 import { CalendarSettingsInputPipe } from './calendar-settings-input.pipe.js';

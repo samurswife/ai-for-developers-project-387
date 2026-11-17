@@ -2,7 +2,10 @@ import { BadRequestException, Injectable, type PipeTransform } from '@nestjs/com
 import type { FieldError, UpdateCalendarSettingsRequest } from '@calendar/api-sdk';
 
 @Injectable()
-export class CalendarSettingsInputPipe implements PipeTransform<unknown, UpdateCalendarSettingsRequest> {
+export class CalendarSettingsInputPipe implements PipeTransform<
+  unknown,
+  UpdateCalendarSettingsRequest
+> {
   transform(value: unknown): UpdateCalendarSettingsRequest {
     const fieldErrors: FieldError[] = [];
     const invalid = (field: string, message: string) =>

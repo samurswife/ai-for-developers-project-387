@@ -48,9 +48,9 @@ const server = createServer(async (request, response) => {
   const body = text ? JSON.parse(text) : undefined;
   requests.push({ method: request.method, url: request.url, ...(body ? { body } : {}) });
   if (request.method === 'GET' && request.url === '/api/calendar-settings') {
-    response.writeHead(200, { 'content-type': 'application/json' }).end(
-      JSON.stringify({ timeZone: currentTimeZone }),
-    );
+    response
+      .writeHead(200, { 'content-type': 'application/json' })
+      .end(JSON.stringify({ timeZone: currentTimeZone }));
     return;
   }
   if (request.method === 'PUT' && request.url === '/api/calendar-settings') {
@@ -118,7 +118,10 @@ const server = createServer(async (request, response) => {
         windowEndDate: '2026-11-21',
         days: [
           { date: '2026-11-08', slots: [] },
-          { date: '2026-11-09', slots: [{ startsAt: '2026-11-09T06:00:00.000Z', endsAt: '2026-11-09T06:30:00.000Z' }] },
+          {
+            date: '2026-11-09',
+            slots: [{ startsAt: '2026-11-09T06:00:00.000Z', endsAt: '2026-11-09T06:30:00.000Z' }],
+          },
           { date: '2026-11-10', slots: [] },
           { date: '2026-11-11', slots: [] },
           { date: '2026-11-12', slots: [] },
@@ -259,10 +262,7 @@ try {
     spec.components.schemas.Availability.properties.timeZone.$ref,
     '#/components/schemas/IanaTimeZone',
   );
-  assert.equal(
-    spec.components.schemas.IanaTimeZone.type,
-    'string',
-  );
+  assert.equal(spec.components.schemas.IanaTimeZone.type, 'string');
   assert.equal(
     spec.components.schemas.Availability.properties.windowStartDate.$ref,
     '#/components/schemas/CalendarDate',
@@ -283,7 +283,8 @@ try {
     '#/components/schemas/UpdateCalendarSettingsRequest',
   );
   assert.equal(
-    spec.paths['/api/calendar-settings'].put.responses['200'].content['application/json'].schema.$ref,
+    spec.paths['/api/calendar-settings'].put.responses['200'].content['application/json'].schema
+      .$ref,
     '#/components/schemas/CalendarSettingsBody',
   );
   assert.equal(

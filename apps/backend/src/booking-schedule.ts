@@ -23,8 +23,7 @@ function ownerLocalParts(instant: number, timeZone: string) {
     weekday: 'short',
     hour12: false,
   }).formatToParts(new Date(instant));
-  const lookup = (type: string) =>
-    Number(parts.find((part) => part.type === type)?.value);
+  const lookup = (type: string) => Number(parts.find((part) => part.type === type)?.value);
   const weekday = parts.find((part) => part.type === 'weekday')?.value ?? '';
   const weekdayIndex = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].indexOf(weekday);
   return {
@@ -86,7 +85,7 @@ function nextOwnerDate(date: string, timeZone: string) {
   );
   for (let step = 30; step <= 30 * 60; step += 30) {
     const candidate = ownerMidnight + step * MS_PER_MINUTE;
-    if (candidate - (24 * 60 * MS_PER_MINUTE) > ownerMidnight) break;
+    if (candidate - 24 * 60 * MS_PER_MINUTE > ownerMidnight) break;
     const parts = ownerLocalParts(candidate, timeZone);
     if (parts.hour === 0 && parts.minute === 0) {
       return `${parts.year.toString().padStart(4, '0')}-${parts.month.toString().padStart(2, '0')}-${parts.day.toString().padStart(2, '0')}`;
@@ -104,7 +103,11 @@ function nextOwnerDate(date: string, timeZone: string) {
   for (let step = 0; step <= 6 * 60; step += 30) {
     const candidate = ownerLateNight + step * MS_PER_MINUTE;
     const parts = ownerLocalParts(candidate, timeZone);
-    if (parts.hour === 0 && parts.minute === 0 && candidate > ownerMidnight + 12 * 60 * MS_PER_MINUTE) {
+    if (
+      parts.hour === 0 &&
+      parts.minute === 0 &&
+      candidate > ownerMidnight + 12 * 60 * MS_PER_MINUTE
+    ) {
       return `${parts.year.toString().padStart(4, '0')}-${parts.month.toString().padStart(2, '0')}-${parts.day.toString().padStart(2, '0')}`;
     }
   }

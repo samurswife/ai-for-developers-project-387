@@ -73,11 +73,7 @@ export function UpcomingMeetings() {
             <ul className="space-y-5">
               {state.items.map((booking) => (
                 <li className="page-panel min-w-0 break-words" key={booking.id}>
-                  <BookingDetails
-                    {...booking}
-                    timeZone={timeZone}
-                    zoneLabel={zoneLabel}
-                  />
+                  <BookingDetails {...booking} timeZone={timeZone} zoneLabel={zoneLabel} />
                   <p className="mt-4">{booking.guestName}</p>
                   <p className="mt-1">{booking.guestEmail}</p>
                 </li>

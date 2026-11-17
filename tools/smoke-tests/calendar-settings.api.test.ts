@@ -54,9 +54,7 @@ test('PUT with a valid IANA zone persists and Availability.timeZone reflects it'
       body: JSON.stringify({ name: 'Знакомство', durationMinutes: 30 }),
     });
     const item = await publish.json();
-    const slots = await (
-      await fetch(`${backend.url}/api/meeting-types/${item.id}/slots`)
-    ).json();
+    const slots = await (await fetch(`${backend.url}/api/meeting-types/${item.id}/slots`)).json();
     expect(slots.timeZone).toBe('Asia/Krasnoyarsk');
   } finally {
     await backend.close();

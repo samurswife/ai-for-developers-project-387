@@ -16,9 +16,9 @@ type SettingsState =
 
 function listSupportedTimeZones() {
   if (typeof Intl.supportedValuesOf !== 'function') return [STATE_DEFAULT.timeZone];
-  return (Intl.supportedValuesOf('timeZone') as string[]).slice().sort((a, b) =>
-    a.localeCompare(b),
-  );
+  return (Intl.supportedValuesOf('timeZone') as string[])
+    .slice()
+    .sort((a, b) => a.localeCompare(b));
 }
 
 export function OwnerCalendarSettings() {

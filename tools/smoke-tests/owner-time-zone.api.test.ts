@@ -88,10 +88,7 @@ test('Asia/Krasnoyarsk window advances at owner midnight (17:00 UTC)', async () 
     await setZone(backend.url, 'Asia/Krasnoyarsk');
     const item = await publish(backend.url, 30);
     const read = async () =>
-      slotsResponse(
-        await fetch(`${backend.url}/api/meeting-types/${item.id}/slots`),
-        200,
-      );
+      slotsResponse(await fetch(`${backend.url}/api/meeting-types/${item.id}/slots`), 200);
     const before = await read();
     expect(before.days.map((day: { date: string }) => day.date).slice(0, 3)).toEqual([
       '2026-11-09',
@@ -201,10 +198,7 @@ test('a valid query string with non-zero seconds or sub-second fractions is reje
   const backend = await startCalendar('2026-11-09T05:00:00.000Z');
   try {
     const item = await publish(backend.url, 30);
-    for (const startsAt of [
-      '2026-11-09T06:00:01Z',
-      '2026-11-09T06:00:00.001Z',
-    ]) {
+    for (const startsAt of ['2026-11-09T06:00:01Z', '2026-11-09T06:00:00.001Z']) {
       const response = await fetch(`${backend.url}/api/bookings`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
