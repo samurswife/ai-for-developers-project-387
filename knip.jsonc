@@ -2,7 +2,7 @@
   "$schema": "./node_modules/knip/schema-jsonc.json",
   // Third-party skill resources are consumed by agents, not application imports.
   "ignore": [".agents/skills/**"],
-  // Native binaries are pinned by mise; the OpenCode permission probe installs the pinned CLI with SHA-256.
+  // Native binaries are pinned in mise.toml or Actions (mise bootstrap and the SHA-256-verified OpenCode CLI).
   "ignoreBinaries": [
     "vacuum",
     "rumdl",
@@ -11,6 +11,7 @@
     "jactionlint",
     "agnix",
     "opencode",
+    "mise",
   ],
   "workspaces": {
     "specs": {

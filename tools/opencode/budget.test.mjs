@@ -421,6 +421,7 @@ test('completion reporter distinguishes timeout, preparation, auth, agent failur
     ['Install mise and tools', 'failure', 'infra'],
     ['Install dependencies and Chromium', 'failure', 'infra'],
     ['Verify unattended permissions', 'failure', 'infra'],
+    ['Verify prepared tools', 'failure', 'infra'],
     ['Reserve PR attempt', 'cancelled', 'agent_failed'],
     ['Run OpenCode', 'timed_out', 'timeout'],
   ]) {

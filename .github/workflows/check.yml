@@ -32,6 +32,7 @@ jobs:
         with:
           version: '2026.10.25'
           install_args: --locked
+          mise_dir: ${{ runner.temp }}/mise
 
       - name: Install dependencies and Chromium
         run: mise run setup

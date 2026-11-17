@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { actionFor, verifyPermissions } from './check-permissions.mjs';
+import { verifyToolchain } from './check-toolchain.mjs';
 
 const workflow = readFileSync(
   new URL('../../.github/workflows/opencode.yml', import.meta.url),
@@ -38,6 +39,57 @@ function shellStep(name) {
     .map((line) => line.slice(10))
     .join('\n');
 }
+
+test('installed project tools survive the workflow XDG change without installing again', () => {
+  const directory = mkdtempSync(path.join(tmpdir(), 'opencode-toolchain-'));
+  const baseline = spawnSync('mise', ['ls', '--current', '--json'], { encoding: 'utf8' });
+  assert.equal(baseline.status, 0, baseline.stderr);
+  const before = JSON.parse(baseline.stdout);
+  const env = {
+    ...process.env,
+    RUNNER_TEMP: directory,
+    XDG_DATA_HOME: path.join(directory, 'opencode-work', 'data'),
+    MISE_AUTO_INSTALL: 'false',
+  };
+  delete env.MISE_DATA_DIR;
+  const installedData =
+    process.env.MISE_DATA_DIR ?? path.resolve(before.node[0].install_path, '../../..');
+  const setup = workflow
+    .split('      - name: Install mise and tools\n')[1]
+    ?.split('      - name:')[0];
+  // mise-action exports its explicit mise_dir; reproduce that contract with the already installed local toolchain.
+  if (setup?.includes('mise_dir: ${{ runner.temp }}/mise')) env.MISE_DATA_DIR = installedData;
+  try {
+    writeFileSync(path.join(directory, 'opencode-tools-before.json'), baseline.stdout);
+    const after = spawnSync('mise', ['ls', '--current', '--json'], { env, encoding: 'utf8' });
+    assert.equal(after.status, 0, after.stderr);
+    verifyToolchain(before, JSON.parse(after.stdout));
+    // Exercise the real pre-model step, including a project command, with auto-install disabled.
+    const ready = spawnSync('bash', ['-c', shellStep('Verify prepared tools')], {
+      env,
+      encoding: 'utf8',
+      timeout: 30_000,
+    });
+    assert.equal(
+      ready.status,
+      0,
+      `${ready.error?.message ?? ''}\n${ready.stderr}\n${ready.stdout}`,
+    );
+    const withoutPin = { ...env };
+    delete withoutPin.MISE_DATA_DIR;
+    const broken = spawnSync('mise', ['ls', '--current', '--json'], {
+      env: withoutPin,
+      encoding: 'utf8',
+    });
+    assert.equal(broken.status, 0, broken.stderr);
+    assert.throws(() => verifyToolchain(before, JSON.parse(broken.stdout)), /not installed/);
+    console.log(
+      'Real mise: changing XDG without MISE_DATA_DIR loses installed tools; pinned data retains all paths and runs the project command without auto-install.',
+    );
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
 
 test('compiled-rule checks reject the captured permission wait and respect later overrides', () => {
   const before = [
@@ -183,11 +235,12 @@ test('locked project tools and setup precede the model and remain behind the bud
   );
   assert.match(execution, /jdx\/mise-action@[a-f0-9]{40}/);
   assert.match(execution, /install_args: --locked/);
-  assert.match(execution, /run: mise run setup/);
+  assert.match(execution, /mise run setup/);
   for (const name of [
     'Install mise and tools',
     'Install dependencies and Chromium',
     'Verify unattended permissions',
+    'Verify prepared tools',
   ]) {
     const step = execution.split(`      - name: ${name}\n`)[1]?.split('      - name:')[0];
     assert.match(step ?? '', /if: steps\.budget\.outputs\.allowed == 'true'/);

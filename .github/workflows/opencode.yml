@@ -181,11 +181,14 @@ jobs:
         with:
           version: '2026.10.25'
           install_args: --locked
+          mise_dir: ${{ runner.temp }}/mise
 
       - name: Install dependencies and Chromium
         if: steps.budget.outputs.allowed == 'true'
         timeout-minutes: 8
-        run: mise run setup
+        run: |
+          mise run setup
+          mise ls --current --json > "$RUNNER_TEMP/opencode-tools-before.json"
 
       # The retired composite action downloads latest; install its CLI entrypoint reproducibly instead.
       - name: Install OpenCode v1.19.4
@@ -229,6 +232,20 @@ jobs:
             opencode debug agent "$agent" > "$RUNNER_TEMP/opencode-$agent.json"
             node tools/opencode/check-permissions.mjs "$RUNNER_TEMP/opencode-$agent.json" "$RUNNER_TEMP/opencode-work"
           done
+
+      - name: Verify prepared tools
+        if: steps.budget.outputs.allowed == 'true'
+        timeout-minutes: 2
+        shell: bash
+        env:
+          XDG_DATA_HOME: ${{ runner.temp }}/opencode-work/data
+          TMPDIR: ${{ runner.temp }}/opencode-work
+        run: |
+          set -euo pipefail
+          mise ls --current --json > "$RUNNER_TEMP/opencode-tools-after.json"
+          node tools/opencode/check-toolchain.mjs "$RUNNER_TEMP/opencode-tools-before.json" "$RUNNER_TEMP/opencode-tools-after.json"
+          mise exec -- hk --version
+          mise run lint:versions
 
       - name: Run OpenCode
         if: steps.budget.outputs.allowed == 'true'
