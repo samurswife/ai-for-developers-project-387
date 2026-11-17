@@ -215,7 +215,7 @@ jobs:
         timeout-minutes: 1
         env:
           OPENCODE_CONFIG_CONTENT: >-
-            {"model":"opencode/minimax-m3","small_model":"opencode/minimax-m3","permission":{"read":{"*":"allow","*.env":"deny","*.env.*":"deny","*.env.example":"allow"},"external_directory":{"*":"deny","${{ runner.temp }}/opencode-work/*":"allow"},"doom_loop":"deny","question":"deny"}}
+            {"model":"opencode/glm-5.3-flash-free","small_model":"opencode/glm-5.3-flash-free","permission":{"read":{"*":"allow","*.env":"deny","*.env.*":"deny","*.env.example":"allow"},"external_directory":{"*":"deny","${{ runner.temp }}/opencode-work/*":"allow"},"doom_loop":"deny","question":"deny"}}
         run: printf 'OPENCODE_CONFIG_CONTENT=%s\n' "$OPENCODE_CONFIG_CONTENT" >> "$GITHUB_ENV"
 
       - name: Verify unattended permissions
@@ -283,7 +283,7 @@ jobs:
           exit "$result"
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
-          MODEL: opencode/minimax-m3
+          MODEL: opencode/glm-5.3-flash-free
           SHARE: 'false'
           USE_GITHUB_TOKEN: 'false'
           XDG_DATA_HOME: ${{ runner.temp }}/opencode-work/data
