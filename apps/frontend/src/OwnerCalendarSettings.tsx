@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState, type SubmitEvent } from 'react';
 import {
   calendarSettingsGetCalendarSettings,
   calendarSettingsUpdateCalendarSettings,
@@ -14,45 +14,42 @@ type SettingsState =
   | { status: 'loading' | 'error' }
   | { status: 'ready'; current: CalendarSettingsBody; saving: boolean; error: string | null };
 
+function listSupportedTimeZones() {
+  if (typeof Intl.supportedValuesOf !== 'function') return [STATE_DEFAULT.timeZone];
+  return (Intl.supportedValuesOf('timeZone') as string[]).slice().sort((a, b) =>
+    a.localeCompare(b),
+  );
+}
+
 export function OwnerCalendarSettings() {
-  const [zones, setZones] = useState<string[]>([]);
+  const [zones] = useState<string[]>(listSupportedTimeZones);
   const [state, setState] = useState<SettingsState>({ status: 'loading' });
   const [picked, setPicked] = useState<string>(STATE_DEFAULT.timeZone);
 
-  const reload = useCallback(
-    async (signal?: AbortSignal) => {
-      try {
-        const result = await calendarSettingsGetCalendarSettings({ client: api, signal });
+  useEffect(() => {
+    const controller = new AbortController();
+    void calendarSettingsGetCalendarSettings({ client: api, signal: controller.signal })
+      .then((result) => {
         if (!result.data) {
           setState({ status: 'error' });
-          return;
+          return undefined;
         }
         setPicked(result.data.timeZone);
         setState({ status: 'ready', current: result.data, saving: false, error: null });
-      } catch {
+        return undefined;
+      })
+      .catch(() => {
         setState({ status: 'error' });
-      }
-    },
-    [],
-  );
-
-  useEffect(() => {
-    const controller = new AbortController();
-    setZones(
-      typeof Intl.supportedValuesOf === 'function'
-        ? (Intl.supportedValuesOf('timeZone') as string[]).sort((a, b) => a.localeCompare(b))
-        : [STATE_DEFAULT.timeZone],
-    );
-    void reload(controller.signal);
+        return undefined;
+      });
     return () => controller.abort();
-  }, [reload]);
+  }, []);
 
-  async function save(event: { preventDefault: () => void }) {
+  async function save(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (state.status !== 'ready' || state.saving) return;
-    setState((previous) =>
-      previous.status === 'ready' ? { ...previous, saving: true, error: null } : previous,
-    );
+    const snapshot = state;
+    if (snapshot.status !== 'ready' || snapshot.saving) return;
+    setState({ ...snapshot, saving: true, error: null });
     const result = await calendarSettingsUpdateCalendarSettings({
       client: api,
       body: { timeZone: picked },
@@ -65,22 +62,11 @@ export function OwnerCalendarSettings() {
       const fieldError: FieldError | undefined = result.error.fieldErrors?.find(
         (entry) => entry.field === 'timeZone',
       );
-      setState((previous) =>
-        previous.status === 'ready'
-          ? {
-              ...previous,
-              saving: false,
-              error: fieldError?.message ?? result.error?.message ?? 'Пояс не принят.',
-            }
-          : previous,
-      );
+      const errorMessage = fieldError?.message ?? result.error?.message ?? 'Пояс не принят.';
+      setState({ ...snapshot, saving: false, error: errorMessage });
       return;
     }
-    setState((previous) =>
-      previous.status === 'ready'
-        ? { ...previous, saving: false, error: 'Не удалось сохранить пояс.' }
-        : previous,
-    );
+    setState({ ...snapshot, saving: false, error: 'Не удалось сохранить пояс.' });
   }
 
   return (
