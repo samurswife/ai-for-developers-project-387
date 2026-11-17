@@ -418,6 +418,10 @@ test('completion reporter distinguishes timeout, preparation, auth, agent failur
     ['Agent failed', 'failure', 'agent_failed'],
     ['Run OpenCode', 'success', 'success'],
     ['Install OpenCode v1.19.4', 'failure', 'infra'],
+    ['Install mise and tools', 'failure', 'infra'],
+    ['Install dependencies and Chromium', 'failure', 'infra'],
+    ['Verify unattended permissions', 'failure', 'infra'],
+    ['Verify prepared tools', 'failure', 'infra'],
     ['Reserve PR attempt', 'cancelled', 'agent_failed'],
     ['Run OpenCode', 'timed_out', 'timeout'],
   ]) {

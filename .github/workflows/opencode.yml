@@ -59,7 +59,7 @@ jobs:
     needs: authorize
     if: needs.authorize.outputs.allowed == 'true'
     runs-on: ubuntu-24.04
-    timeout-minutes: 50
+    timeout-minutes: 70
     permissions:
       contents: read
       actions: read
@@ -171,11 +171,29 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 0
           persist-credentials: false
+
+      - name: Install mise and tools
+        if: steps.budget.outputs.allowed == 'true'
+        timeout-minutes: 5
+        uses: jdx/mise-action@f5be966e4a917d54244728e6a5fdcd1d93a35e6c # v5.2.6
+        with:
+          version: '2026.10.25'
+          install_args: --locked
+          mise_dir: ${{ runner.temp }}/mise
+
+      - name: Install dependencies and Chromium
+        if: steps.budget.outputs.allowed == 'true'
+        timeout-minutes: 8
+        run: |
+          mise run setup
+          mise ls --current --json > "$RUNNER_TEMP/opencode-tools-before.json"
 
       # The retired composite action downloads latest; install its CLI entrypoint reproducibly instead.
       - name: Install OpenCode v1.19.4
         if: steps.budget.outputs.allowed == 'true'
+        timeout-minutes: 3
         shell: bash
         run: |
           set -euo pipefail
@@ -191,6 +209,43 @@ jobs:
       - name: Verify CLI
         if: steps.budget.outputs.allowed == 'true'
         run: opencode --version
+
+      - name: Configure unattended agent
+        if: steps.budget.outputs.allowed == 'true'
+        timeout-minutes: 1
+        env:
+          OPENCODE_CONFIG_CONTENT: >-
+            {"model":"opencode/minimax-m3","small_model":"opencode/minimax-m3","permission":{"read":{"*":"allow","*.env":"deny","*.env.*":"deny","*.env.example":"allow"},"external_directory":{"*":"deny","${{ runner.temp }}/opencode-work/*":"allow"},"doom_loop":"deny","question":"deny"}}
+        run: printf 'OPENCODE_CONFIG_CONTENT=%s\n' "$OPENCODE_CONFIG_CONTENT" >> "$GITHUB_ENV"
+
+      - name: Verify unattended permissions
+        if: steps.budget.outputs.allowed == 'true'
+        timeout-minutes: 2
+        shell: bash
+        env:
+          XDG_DATA_HOME: ${{ runner.temp }}/opencode-work/data
+          TMPDIR: ${{ runner.temp }}/opencode-work
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/opencode-work"
+          for agent in build general explore; do
+            opencode debug agent "$agent" > "$RUNNER_TEMP/opencode-$agent.json"
+            node tools/opencode/check-permissions.mjs "$RUNNER_TEMP/opencode-$agent.json" "$RUNNER_TEMP/opencode-work"
+          done
+
+      - name: Verify prepared tools
+        if: steps.budget.outputs.allowed == 'true'
+        timeout-minutes: 2
+        shell: bash
+        env:
+          XDG_DATA_HOME: ${{ runner.temp }}/opencode-work/data
+          TMPDIR: ${{ runner.temp }}/opencode-work
+        run: |
+          set -euo pipefail
+          mise ls --current --json > "$RUNNER_TEMP/opencode-tools-after.json"
+          node tools/opencode/check-toolchain.mjs "$RUNNER_TEMP/opencode-tools-before.json" "$RUNNER_TEMP/opencode-tools-after.json"
+          mise exec -- hk --version
+          mise run lint:versions
 
       - name: Run OpenCode
         if: steps.budget.outputs.allowed == 'true'
@@ -229,9 +284,10 @@ jobs:
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
           MODEL: opencode/minimax-m3
-          OPENCODE_CONFIG_CONTENT: '{"small_model":"opencode/minimax-m3"}'
           SHARE: 'false'
           USE_GITHUB_TOKEN: 'false'
+          XDG_DATA_HOME: ${{ runner.temp }}/opencode-work/data
+          TMPDIR: ${{ runner.temp }}/opencode-work
 
       # These terminal markers let the model-free reporter classify results after this runner stops.
       - name: Agent timeout
