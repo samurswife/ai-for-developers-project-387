@@ -113,7 +113,7 @@ Workflow [OpenCode](.github/workflows/opencode.yml) запускает аген�
 |---|---|
 | События | `issue_comment` и `pull_request_review_comment`, `types: [created]` |
 | Команды | `/oc <задание>` и `/opencode <задание>` словом в комментарии |
-| Модель | `opencode/minimax-m3` во всех сценариях; вспомогательные запросы используют ту же модель |
+| Модель | `opencode/glm-5.3-flash-free` во всех сценариях; вспомогательные запросы используют ту же модель |
 | Секрет | `OPENCODE_API_KEY`; значение добавляет владелец в Settings, в репозитории его нет |
 | Sharing | `SHARE=false`, публичная ссылка на сессию не создаётся |
 | Авторизация | OIDC через [OpenCode Agent App](https://github.com/apps/opencode-agent); `contents/actions/pull-requests: read`, `id-token: write`, `persist-credentials: false` |

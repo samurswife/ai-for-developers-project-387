@@ -117,7 +117,7 @@ GitHub API; их запуск входит в `mise run lint:workflows`.
 - Конкурентность общая с ручным workflow: группа `opencode-<repository>-<issue_number>`,
   `cancel-in-progress: false`. Активный запуск ручной команды не отменяется автотриажем и наоборот.
 - Интеграция та же, что у ручного пути: CLI `v1.19.4` с проверкой SHA-256, SHA-пinned actions,
-  модель `opencode/minimax-m3`, `SHARE=false`, App/OIDC, `persist-credentials: false`.
+  модель `opencode/glm-5.3-flash-free`, `SHARE=false`, App/OIDC, `persist-credentials: false`.
   `GITHUB_TOKEN` не получает write-права.
 - Агенту передаётся статический PROMPT: он поручает прочитать правила трекера, метки, словарь и
   существующий код, проверить, реализована ли потребность, и опубликовать краткий разбор по-русски
@@ -139,8 +139,13 @@ GitHub API; их запуск входит в `mise run lint:workflows`.
 
 ## Модель и доступ
 
-- Провайдер и модель: `opencode/minimax-m3` (OpenCode, MiniMax M3) для команд, автотриажа и авторевью.
-  Вспомогательная модель `small_model` также задана как `opencode/minimax-m3`.
+- Провайдер и модель: `opencode/glm-5.3-flash-free` (OpenCode, GLM-5.3-Flash Free) для команд, автотриажа и авторевью.
+  Вспомогательная модель `small_model` также задана как `opencode/glm-5.3-flash-free`.
+- Бесплатная версия выбрана для программирования, тестов и ревью: поддерживает инструменты,
+  reasoning и контекст 200 000 токенов. Тариф и доступность проверяются по
+  [каталогу OpenCode](https://opencode.ai/docs/console/models/); бесплатный период ограничен поставщиком.
+  Автоматический переход на платную модель не настроен. При недоступности бесплатной модели
+  запуск завершается ошибкой; перед сменой модели нужно проверить её тариф и поддержку в закреплённом CLI.
 - Repository Actions secret: `OPENCODE_API_KEY`. Его значение добавляет владелец через Settings → Secrets and variables
   → Actions; в файлах проекта и комментариях ключа быть не должно.
 - [OpenCode Agent App](https://github.com/apps/opencode-agent) должен иметь доступ к этому репозиторию.
