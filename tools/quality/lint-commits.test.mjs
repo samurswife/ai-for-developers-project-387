@@ -100,6 +100,22 @@ test('history lint accepts an empty range', (t) => {
   assert.match(result.stdout, /No commits/);
 });
 
+test('an explicit published-history boundary excludes old violations but rejects the same new violation', (t) => {
+  const { git, commit, lint } = fixture(t);
+  commit(`ci: published message\n\n${longBody}`);
+  const published = git('rev-parse', 'HEAD');
+  commit('fix: validate future squash messages (#32)');
+  const retrospective = lint();
+  assert.equal(retrospective.status, 1, retrospective.stdout + retrospective.stderr);
+  assert.match(retrospective.stdout + retrospective.stderr, /body-max-line-length/);
+  const afterBoundary = lint('--from', published);
+  assert.equal(afterBoundary.status, 0, afterBoundary.stdout + afterBoundary.stderr);
+  commit(`fix: new message still must comply (#32)\n\n${longBody}`);
+  const newViolation = lint('--from', published);
+  assert.equal(newViolation.status, 1, newViolation.stdout + newViolation.stderr);
+  assert.match(newViolation.stdout + newViolation.stderr, /body-max-line-length/);
+});
+
 test('history lint rejects missing revisions', (t) => {
   const { lint } = fixture(t);
   for (const option of ['--from', '--to']) {
