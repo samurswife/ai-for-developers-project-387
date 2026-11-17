@@ -79,7 +79,10 @@ export function AvailabilityPage({ id }: { id: string }) {
   const [state, setState] = useState<CalendarState>({ status: 'loading' });
   const [zones] = useState<string[]>(listSupportedTimeZones);
   const [browserZone] = useState<string>(detectBrowserTimeZone);
-  const [pickedZone, setPickedZone] = useState<string | null>(null);
+  const [pickedZone, setPickedZone] = useState<string | null>(() => {
+    const param = new URLSearchParams(location.search).get('tz');
+    return param && zones.includes(param) ? param : null;
+  });
   const retry = useReadLifecycle(
     useCallback((signal: AbortSignal) => readCalendar(id, signal), [id]),
     () => setState({ status: 'loading' }),
@@ -90,6 +93,10 @@ export function AvailabilityPage({ id }: { id: string }) {
 
   function handleZoneChange(next: string) {
     setPickedZone(next || null);
+    const url = new URL(location.href);
+    if (next) url.searchParams.set('tz', next);
+    else url.searchParams.delete('tz');
+    history.replaceState(null, '', url);
     setState((previous) =>
       previous.status === 'ready' ? { ...previous, date: null, start: null } : previous,
     );
@@ -242,7 +249,9 @@ export function AvailabilityPage({ id }: { id: string }) {
                 onClick={() => {
                   if (selectedSlot)
                     navigate(
-                      `/meeting-types/${id}/book?start=${encodeURIComponent(selectedSlot.startsAt)}`,
+                      `/meeting-types/${id}/book?start=${encodeURIComponent(
+                        selectedSlot.startsAt,
+                      )}&tz=${encodeURIComponent(viewZone)}`,
                     );
                 }}
               >

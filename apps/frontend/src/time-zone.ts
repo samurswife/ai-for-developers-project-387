@@ -124,6 +124,12 @@ export function zoneLabel(zone: string): string {
   return zone;
 }
 
+/** Explicit owner-zone label used wherever the owner's view is secondary. */
+export function ownerZoneLabel(zone: string): string {
+  if (zone === 'Europe/Moscow') return 'Московское время (UTC+3)';
+  return `${zone} (время владельца)`;
+}
+
 /**
  * Re-group the owner's availability into the guest's calendar days. Slot
  * moments (`startsAt`, `endsAt`) stay exactly as the server returned them: only

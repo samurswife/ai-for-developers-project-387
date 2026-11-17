@@ -62,13 +62,14 @@ test('guest books through SDK, reloads confirmation, navigates back without POST
     });
     await page.goto(`${url}/meeting-types/${item.id}`);
     await choose(page);
+    await page.getByText('America/Los_Angeles', { exact: true }).waitFor();
     await page.getByText('Московское время (UTC+3)', { exact: true }).waitFor();
     await page.getByLabel('Имя', { exact: true }).fill('Анна');
     await page.getByLabel('Электронная почта', { exact: true }).fill('Anna@Example.com');
     await page.screenshot({ path: '/tmp/ticket12-form-mobile.png', fullPage: true });
     await page.getByRole('button', { name: 'Подтвердить запись', exact: true }).click();
     await page.getByRole('heading', { name: 'Вы записаны', exact: true }).waitFor();
-    expect(page.url()).toMatch(/\/bookings\/[0-9a-f-]+\/confirmation$/);
+    expect(page.url()).toMatch(/\/bookings\/[0-9a-f-]+\/confirmation(\?|$)/);
     await page.getByText('Анна', { exact: true }).waitFor();
     await page.getByText('Anna@Example.com', { exact: true }).waitFor();
     await page.getByText('09:00 – 09:30', { exact: true }).waitFor();

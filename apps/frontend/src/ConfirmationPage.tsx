@@ -1,6 +1,16 @@
-import type { Booking } from '@calendar/api-sdk';
+import { useEffect, useState } from 'react';
+import { calendarSettingsGetCalendarSettings, type Booking } from '@calendar/api-sdk';
+import { api } from '@/lib/api';
 import { BookingDetails } from './BookingDetails';
 import { resetBookingDraft } from './booking-scenario';
+import {
+  detectBrowserTimeZone,
+  listSupportedTimeZones,
+  ownerZoneLabel,
+  zoneLabel,
+} from './time-zone';
+
+const DEFAULT_OWNER_TIME_ZONE = 'Europe/Moscow';
 
 export function ConfirmationPage({ id }: { id: string }) {
   let booking: Booking | undefined;
@@ -10,6 +20,21 @@ export function ConfirmationPage({ id }: { id: string }) {
   } catch {
     /* Missing or unreadable tab data does not cancel a booking. */
   }
+  const [ownerTimeZone, setOwnerTimeZone] = useState<string | null>(null);
+  useEffect(() => {
+    if (!booking) return undefined;
+    const controller = new AbortController();
+    calendarSettingsGetCalendarSettings({ client: api, signal: controller.signal })
+      .then((result) => {
+        if (result.data) setOwnerTimeZone(result.data.timeZone);
+        return undefined;
+      })
+      .catch(() => {
+        /* Keep the guest-only view; the owner zone stays unknown without settings. */
+      });
+    return () => controller.abort();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
   if (!booking)
     return (
       <section className="page-panel">
@@ -25,14 +50,22 @@ export function ConfirmationPage({ id }: { id: string }) {
         </a>
       </section>
     );
+  const param = new URLSearchParams(location.search).get('tz');
+  const zones = listSupportedTimeZones();
+  const guestZone = param && zones.includes(param) ? param : detectBrowserTimeZone();
+  const secondaryZone = ownerTimeZone ?? DEFAULT_OWNER_TIME_ZONE;
   return (
     <section className="max-w-2xl">
       <h1 className="text-3xl font-semibold">Вы записаны</h1>
       <div className="page-panel mt-6 space-y-5">
         <BookingDetails
-          {...booking}
-          timeZone="Europe/Moscow"
-          zoneLabel="Московское время (UTC+3)"
+          meetingType={booking.meetingType}
+          startsAt={booking.startsAt}
+          endsAt={booking.endsAt}
+          primaryTimeZone={guestZone}
+          primaryZoneLabel={zoneLabel(guestZone)}
+          secondaryTimeZone={secondaryZone}
+          secondaryZoneLabel={ownerZoneLabel(secondaryZone)}
         />
         <p className="break-words">{booking.guestName}</p>
         <p className="break-all">{booking.guestEmail}</p>

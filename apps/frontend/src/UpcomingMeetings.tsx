@@ -7,6 +7,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { api } from '@/lib/api';
 import { BookingDetails } from './BookingDetails';
+import { ownerZoneLabel } from './time-zone';
 import { useReadLifecycle } from './use-read-lifecycle';
 
 type MeetingsState =
@@ -15,12 +16,6 @@ type MeetingsState =
   | { status: 'ready'; items: Booking[]; timeZone: string };
 
 const DEFAULT_OWNER_TIME_ZONE = 'Europe/Moscow';
-
-/** Localized label for a time zone, including the owner-context suffix when applicable. */
-function ownerZoneLabel(timeZone: string) {
-  if (timeZone === 'Europe/Moscow') return 'Московское время (UTC+3)';
-  return `${timeZone} (время владельца)`;
-}
 
 export function UpcomingMeetings() {
   const [state, setState] = useState<MeetingsState>({ status: 'loading' });
@@ -44,7 +39,6 @@ export function UpcomingMeetings() {
   );
 
   const timeZone = state.status === 'ready' ? state.timeZone : DEFAULT_OWNER_TIME_ZONE;
-  const zoneLabel = ownerZoneLabel(timeZone);
 
   return (
     <section className="mt-10" aria-labelledby="upcoming-title">
@@ -73,7 +67,13 @@ export function UpcomingMeetings() {
             <ul className="space-y-5">
               {state.items.map((booking) => (
                 <li className="page-panel min-w-0 break-words" key={booking.id}>
-                  <BookingDetails {...booking} timeZone={timeZone} zoneLabel={zoneLabel} />
+                  <BookingDetails
+                    meetingType={booking.meetingType}
+                    startsAt={booking.startsAt}
+                    endsAt={booking.endsAt}
+                    primaryTimeZone={timeZone}
+                    primaryZoneLabel={ownerZoneLabel(timeZone)}
+                  />
                   <p className="mt-4">{booking.guestName}</p>
                   <p className="mt-1">{booking.guestEmail}</p>
                 </li>
