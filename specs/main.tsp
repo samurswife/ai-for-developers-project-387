@@ -273,10 +273,27 @@ namespace MeetingTypes {
 @pattern("Z$")
 scalar UtcInstant extends string;
 
-/** Calendar date in Europe/Moscow. */
+/** Calendar date in the owner's current time zone. */
 @example("2026-11-09")
 @format("date")
-scalar MoscowDate extends string;
+scalar CalendarDate extends string;
+
+/** IANA time zone identifier, validated on the server. */
+@example("Europe/Moscow")
+@maxLength(100)
+scalar IanaTimeZone extends string;
+
+/** Calendar settings for the single in-memory owner. */
+model CalendarSettingsBody {
+  /** Current owner time zone; defaults to Europe/Moscow after each restart. */
+  @example("Europe/Moscow") timeZone: IanaTimeZone;
+}
+
+/** Fields accepted when updating calendar settings. */
+model UpdateCalendarSettingsRequest {
+  /** New owner time zone; must be a valid IANA identifier. */
+  @example("Asia/Krasnoyarsk") timeZone: IanaTimeZone;
+}
 
 /** A confirmed guest booking. */
 model Booking {
@@ -476,10 +493,10 @@ model Slot {
   @example("2026-11-09T06:30:00.000Z") endsAt: UtcInstant;
 }
 
-/** One Moscow date, including dates without free intervals. */
+/** One owner-day, including dates without free intervals. */
 model AvailabilityDay {
-  /** Moscow calendar date. */
-  @example("2026-11-09") date: MoscowDate;
+  /** Owner calendar date (in the owner's time zone). */
+  @example("2026-11-09") date: CalendarDate;
 
   /** Free intervals sorted by start. */
   @example(#[]) slots: Slot[];
@@ -490,14 +507,14 @@ model Availability {
   /** One server instant captured for the entire calculation. */
   @example("2026-11-08T20:59:59.000Z") currentTime: UtcInstant;
 
-  /** Time zone for all calendar rules. */
-  @example("Europe/Moscow") timeZone: "Europe/Moscow";
+  /** Time zone for all calendar rules; equals the configured owner time zone. */
+  @example("Europe/Moscow") timeZone: IanaTimeZone;
 
   /** First date, inclusive. */
-  @example("2026-11-08") windowStartDate: MoscowDate;
+  @example("2026-11-08") windowStartDate: CalendarDate;
 
   /** Last date, inclusive. */
-  @example("2026-11-21") windowEndDate: MoscowDate;
+  @example("2026-11-21") windowEndDate: CalendarDate;
 
   /** All fourteen dates in chronological order. */
   @example(#[]) days: AvailabilityDay[];
@@ -555,5 +572,72 @@ namespace MeetingTypes {
       }
     | ValidationError
     | MeetingTypeNotFound
+    | InternalError;
+}
+
+@tag("CalendarSettings")
+@route("/api/calendar-settings")
+namespace CalendarSettings {
+  /** Read the current calendar settings for the single owner. */
+  @get
+  @opExample(#{ returnType: #{ statusCode: 200, body: #{ timeZone: "Europe/Moscow" } } })
+  @opExample(#{
+    returnType: #{
+      statusCode: 500,
+      body: #{
+        code: "INTERNAL_ERROR",
+        message: "Не удалось выполнить запрос.",
+      },
+    },
+  })
+  op getCalendarSettings():
+    | {
+        @statusCode statusCode: 200;
+        @body body: CalendarSettingsBody;
+      }
+    | InternalError;
+
+  /** Update the owner's time zone. Unknown identifiers return VALIDATION_ERROR. */
+  @put
+  @opExample(#{
+    parameters: #{ body: #{ timeZone: "Asia/Krasnoyarsk" } },
+    returnType: #{
+      statusCode: 200,
+      body: #{ timeZone: "Asia/Krasnoyarsk" },
+    },
+  })
+  @opExample(#{
+    returnType: #{
+      statusCode: 400,
+      body: #{
+        code: "VALIDATION_ERROR",
+        message: "Проверьте поля запроса.",
+        fieldErrors: #[
+          #{
+            field: "timeZone",
+            code: "VALIDATION_ERROR",
+            message: "Ожидается корректный IANA-идентификатор часового пояса.",
+          }
+        ],
+      },
+    },
+  })
+  @opExample(#{
+    returnType: #{
+      statusCode: 500,
+      body: #{
+        code: "INTERNAL_ERROR",
+        message: "Не удалось выполнить запрос.",
+      },
+    },
+  })
+  op updateCalendarSettings(
+    @doc("New calendar settings.") @body body: UpdateCalendarSettingsRequest,
+  ):
+    | {
+        @statusCode statusCode: 200;
+        @body body: CalendarSettingsBody;
+      }
+    | ValidationError
     | InternalError;
 }
