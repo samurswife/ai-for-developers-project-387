@@ -3,9 +3,11 @@ import { once } from 'node:events';
 import { readFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import {
-  getHealth,
   bookingsCreateBooking,
   bookingsListUpcomingBookings,
+  calendarSettingsGetCalendarSettings,
+  calendarSettingsUpdateCalendarSettings,
+  getHealth,
   meetingTypesGetMeetingType,
   meetingTypesGetSlots,
   meetingTypesCreateMeetingType,
@@ -39,11 +41,41 @@ const validationError = {
 };
 let bookingCreated = false;
 let savedBooking;
+let currentTimeZone = 'Europe/Moscow';
 const server = createServer(async (request, response) => {
   let text = '';
   for await (const chunk of request) text += chunk;
   const body = text ? JSON.parse(text) : undefined;
   requests.push({ method: request.method, url: request.url, ...(body ? { body } : {}) });
+  if (request.method === 'GET' && request.url === '/api/calendar-settings') {
+    response.writeHead(200, { 'content-type': 'application/json' }).end(
+      JSON.stringify({ timeZone: currentTimeZone }),
+    );
+    return;
+  }
+  if (request.method === 'PUT' && request.url === '/api/calendar-settings') {
+    if (typeof body?.timeZone === 'string' && body.timeZone.includes('/')) {
+      currentTimeZone = body.timeZone;
+      response
+        .writeHead(200, { 'content-type': 'application/json' })
+        .end(JSON.stringify({ timeZone: currentTimeZone }));
+      return;
+    }
+    response.writeHead(400, { 'content-type': 'application/json' }).end(
+      JSON.stringify({
+        code: 'VALIDATION_ERROR',
+        message: 'Проверьте поля запроса.',
+        fieldErrors: [
+          {
+            field: 'timeZone',
+            code: 'VALIDATION_ERROR',
+            message: 'Ожидается корректный IANA-идентификатор часового пояса.',
+          },
+        ],
+      }),
+    );
+    return;
+  }
   if (request.method === 'GET' && request.url === '/api/bookings/upcoming') {
     response
       .writeHead(200, { 'content-type': 'application/json' })
@@ -78,35 +110,28 @@ const server = createServer(async (request, response) => {
     return;
   }
   if (request.method === 'GET' && request.url === `/api/meeting-types/${meetingType.id}/slots`) {
-    const dates = [
-      '2026-11-08',
-      '2026-11-09',
-      '2026-11-10',
-      '2026-11-11',
-      '2026-11-12',
-      '2026-11-13',
-      '2026-11-14',
-      '2026-11-15',
-      '2026-11-16',
-      '2026-11-17',
-      '2026-11-18',
-      '2026-11-19',
-      '2026-11-20',
-      '2026-11-21',
-    ];
     response.writeHead(200, { 'content-type': 'application/json' }).end(
       JSON.stringify({
         currentTime: '2026-11-08T12:00:00.000Z',
-        timeZone: 'Europe/Moscow',
+        timeZone: currentTimeZone,
         windowStartDate: '2026-11-08',
         windowEndDate: '2026-11-21',
-        days: dates.map((date) => ({
-          date,
-          slots:
-            date === '2026-11-09'
-              ? [{ startsAt: '2026-11-09T06:00:00.000Z', endsAt: '2026-11-09T06:30:00.000Z' }]
-              : [],
-        })),
+        days: [
+          { date: '2026-11-08', slots: [] },
+          { date: '2026-11-09', slots: [{ startsAt: '2026-11-09T06:00:00.000Z', endsAt: '2026-11-09T06:30:00.000Z' }] },
+          { date: '2026-11-10', slots: [] },
+          { date: '2026-11-11', slots: [] },
+          { date: '2026-11-12', slots: [] },
+          { date: '2026-11-13', slots: [] },
+          { date: '2026-11-14', slots: [] },
+          { date: '2026-11-15', slots: [] },
+          { date: '2026-11-16', slots: [] },
+          { date: '2026-11-17', slots: [] },
+          { date: '2026-11-18', slots: [] },
+          { date: '2026-11-19', slots: [] },
+          { date: '2026-11-20', slots: [] },
+          { date: '2026-11-21', slots: [] },
+        ],
       }),
     );
     return;
@@ -227,9 +252,45 @@ try {
       'MEETING_TYPE_NOT_FOUND',
     );
   }
-  assert.equal(spec.components.schemas.MoscowDate.format, 'date');
+  assert.equal(spec.components.schemas.CalendarDate.format, 'date');
   assert.equal(spec.components.schemas.UtcInstant.format, 'date-time');
   assert.equal(spec.components.schemas.UtcInstant.pattern, 'Z$');
+  assert.equal(
+    spec.components.schemas.Availability.properties.timeZone.$ref,
+    '#/components/schemas/IanaTimeZone',
+  );
+  assert.equal(
+    spec.components.schemas.IanaTimeZone.type,
+    'string',
+  );
+  assert.equal(
+    spec.components.schemas.Availability.properties.windowStartDate.$ref,
+    '#/components/schemas/CalendarDate',
+  );
+  assert(!spec.components.schemas.MoscowDate, 'legacy MoscowDate schema must be removed');
+  const settings = await calendarSettingsGetCalendarSettings({ baseUrl, throwOnError: true });
+  assert.equal(settings.response.status, 200);
+  assert.deepEqual(settings.data, { timeZone: 'Europe/Moscow' });
+  const update = await calendarSettingsUpdateCalendarSettings({
+    baseUrl,
+    body: { timeZone: 'Asia/Krasnoyarsk' },
+    throwOnError: true,
+  });
+  assert.equal(update.response.status, 200);
+  assert.deepEqual(update.data, { timeZone: 'Asia/Krasnoyarsk' });
+  assert.equal(
+    spec.paths['/api/calendar-settings'].put.requestBody.content['application/json'].schema.$ref,
+    '#/components/schemas/UpdateCalendarSettingsRequest',
+  );
+  assert.equal(
+    spec.paths['/api/calendar-settings'].put.responses['200'].content['application/json'].schema.$ref,
+    '#/components/schemas/CalendarSettingsBody',
+  );
+  assert.equal(
+    spec.paths['/api/calendar-settings'].put.responses['400'].content['application/json'].schema
+      .properties.code.enum[0],
+    'VALIDATION_ERROR',
+  );
   const bookingInput = {
     meetingTypeId: meetingType.id,
     startsAt: '2026-11-09T09:00:00+03:00',
@@ -287,12 +348,12 @@ try {
     '#/components/schemas/Booking',
   );
   console.log(
-    'PASS: OpenAPI 3.1, SDK GET/POST bodies, UUID paths, UTC instants, Moscow dates, arrays and typed errors over real HTTP',
+    'PASS: OpenAPI 3.1, SDK GET/POST/PUT bodies, UUID paths, UTC instants, IANA owner time zone, calendar settings, arrays and typed errors over real HTTP',
   );
 } finally {
   if (server.listening) {
     await new Promise((resolve, reject) => {
-      server.close((error) => (error ? reject(error) : resolve()));
+      server.close((error) => (error ? reject(error) : resolve(error)));
       server.closeAllConnections();
     });
   }
