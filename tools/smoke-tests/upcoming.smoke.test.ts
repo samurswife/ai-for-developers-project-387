@@ -32,7 +32,7 @@ test('owner creates type, guest books through catalog and confirmation, owner se
     await page.getByRole('link', { name: 'Посмотреть в каталоге', exact: true }).click();
     await page.getByRole('heading', { name: 'Обсудим проект', exact: true }).waitFor();
     await page.getByRole('link', { name: 'Выбрать время', exact: true }).click();
-    await page.getByRole('button', { name: '09:00 – 09:30', exact: true }).click();
+    await page.getByRole('button', { name: '22:00 – 22:30', exact: true }).click();
     await page.getByRole('button', { name: 'Продолжить', exact: true }).click();
     await page.getByLabel('Имя', { exact: true }).fill('Анна');
     await page.getByLabel('Электронная почта', { exact: true }).fill('Anna@Example.com');

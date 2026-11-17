@@ -25,23 +25,23 @@ async function publish(url: string) {
   return response.json();
 }
 
-test('guest opens the real calendar from catalog, chooses Moscow time with keyboard, and changing dates clears the selection', async () => {
+test('guest opens the real calendar from catalog, chooses Los Angeles time with keyboard, and changing dates clears the selection', async () => {
   await scenario(async (page, url, backendUrl) => {
     await publish(backendUrl);
     await page.goto(`${url}/meeting-types`);
     await page.getByRole('link', { name: 'Выбрать время' }).click();
     await page.getByRole('heading', { name: 'Знакомство', exact: true }).waitFor();
-    await page.getByText('Московское время (UTC+3)', { exact: true }).waitFor();
+    await page.getByTestId('current-zone').filter({ hasText: 'America/Los_Angeles' }).waitFor();
     const dates = page.getByRole('group', { name: 'Даты записи' });
-    expect(await dates.getByRole('button').count()).toBe(14);
+    expect(await dates.getByRole('button').count()).toBe(15);
     expect(
-      await dates.getByRole('button', { name: /^9 ноября/ }).getAttribute('aria-pressed'),
+      await dates.getByRole('button', { name: /^8 ноября/ }).getAttribute('aria-pressed'),
     ).toBe('true');
-    const firstSlot = page.getByRole('button', { name: '09:00 – 09:30', exact: true });
+    const firstSlot = page.getByRole('button', { name: '22:00 – 22:30', exact: true });
     await firstSlot.focus();
     await page.keyboard.press('Enter');
     expect(await firstSlot.getAttribute('aria-pressed')).toBe('true');
-    await page.getByText('Выбрано: 09:00 – 09:30', { exact: true }).waitFor();
+    await page.getByText(/^Выбрано: 22:00 – 22:30/).waitFor();
     expect(await page.getByRole('button', { name: 'Продолжить', exact: true }).isDisabled()).toBe(
       false,
     );
@@ -63,7 +63,7 @@ test('guest opens the real calendar from catalog, chooses Moscow time with keybo
     expect(selectedStyle.opacity).toBe('1');
     await writeFile('/tmp/ticket11-selected-style.json', JSON.stringify(selectedStyle));
     await page.screenshot({ path: '/tmp/ticket11-calendar-mobile.png', fullPage: true });
-    await dates.getByRole('button', { name: /^10 ноября/ }).click();
+    await dates.getByRole('button', { name: /^9 ноября/ }).click();
     expect(
       await page
         .getByRole('group', { name: 'Свободное время' })
@@ -71,15 +71,15 @@ test('guest opens the real calendar from catalog, chooses Moscow time with keybo
         .count(),
     ).toBe(0);
     expect(await page.getByText(/^Выбрано:/).count()).toBe(0);
-    await dates.getByRole('button', { name: /^8 ноября/ }).click();
+    await dates.getByRole('button', { name: /^7 ноября/ }).click();
     await page.getByText('На эту дату свободного времени нет', { exact: true }).waitFor();
     expect(
-      await dates.getByRole('button', { name: /^8 ноября/ }).getAttribute('aria-pressed'),
+      await dates.getByRole('button', { name: /^7 ноября/ }).getAttribute('aria-pressed'),
     ).toBe('true');
     await page.reload();
-    await dates.getByRole('button', { name: /^9 ноября/ }).waitFor();
+    await dates.getByRole('button', { name: /^8 ноября/ }).waitFor();
     expect(
-      await dates.getByRole('button', { name: /^9 ноября/ }).getAttribute('aria-pressed'),
+      await dates.getByRole('button', { name: /^8 ноября/ }).getAttribute('aria-pressed'),
     ).toBe('true');
     expect(await page.getByText(/^Выбрано:/).count()).toBe(0);
   });
@@ -107,7 +107,7 @@ for (const suffix of ['', '/slots']) {
       } finally {
         release();
       }
-      await page.getByRole('button', { name: '09:00 – 09:30', exact: true }).waitFor();
+      await page.getByRole('button', { name: '22:00 – 22:30', exact: true }).waitFor();
       await page.unroute(`**/api/meeting-types/${item.id}${suffix}`);
       await page.route(`**/api/meeting-types/${item.id}${suffix}`, (route) =>
         route.abort('connectionreset'),
@@ -122,7 +122,7 @@ for (const suffix of ['', '/slots']) {
       ).toBe(0);
       await page.unroute(`**/api/meeting-types/${item.id}${suffix}`);
       await page.getByRole('button', { name: 'Повторить', exact: true }).click();
-      await page.getByRole('button', { name: '09:00 – 09:30', exact: true }).waitFor();
+      await page.getByRole('button', { name: '22:00 – 22:30', exact: true }).waitFor();
     });
   });
 }
@@ -144,13 +144,13 @@ test('a fully occupied real calendar shows all dates, selects the first and expl
     await page.getByText('В ближайшие 14 дней свободного времени нет', { exact: true }).waitFor();
     await page.getByText('На эту дату свободного времени нет', { exact: true }).waitFor();
     const dates = page.getByRole('group', { name: 'Даты записи' });
-    expect(await dates.getByRole('button').count()).toBe(14);
+    expect(await dates.getByRole('button').count()).toBe(15);
+    expect(
+      await dates.getByRole('button', { name: /^7 ноября/ }).getAttribute('aria-pressed'),
+    ).toBe('true');
+    await dates.getByRole('button', { name: /^8 ноября/ }).click();
     expect(
       await dates.getByRole('button', { name: /^8 ноября/ }).getAttribute('aria-pressed'),
-    ).toBe('true');
-    await dates.getByRole('button', { name: /^9 ноября/ }).click();
-    expect(
-      await dates.getByRole('button', { name: /^9 ноября/ }).getAttribute('aria-pressed'),
     ).toBe('true');
     expect(await page.getByRole('button', { name: 'Продолжить', exact: true }).isDisabled()).toBe(
       true,
