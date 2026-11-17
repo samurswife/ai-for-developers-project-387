@@ -29,7 +29,11 @@ export function ConfirmationPage({ id }: { id: string }) {
     <section className="max-w-2xl">
       <h1 className="text-3xl font-semibold">Вы записаны</h1>
       <div className="page-panel mt-6 space-y-5">
-        <BookingDetails {...booking} />
+        <BookingDetails
+          {...booking}
+          timeZone="Europe/Moscow"
+          zoneLabel="Московское время (UTC+3)"
+        />
         <p className="break-words">{booking.guestName}</p>
         <p className="break-all">{booking.guestEmail}</p>
         <a

@@ -139,7 +139,13 @@ export function BookingPage({ id }: { id: string }) {
       )}
       {readState === 'ready' && selection && (
         <div className="page-panel mt-6">
-          <BookingDetails meetingType={selection.meetingType} {...selection.slot} />
+          <BookingDetails
+            meetingType={selection.meetingType}
+            startsAt={selection.slot.startsAt}
+            endsAt={selection.slot.endsAt}
+            timeZone="Europe/Moscow"
+            zoneLabel="Московское время (UTC+3)"
+          />
           <form className="mt-6 space-y-5" onSubmit={submit} noValidate aria-busy={sending}>
             <div>
               <label htmlFor="guest-name">Имя</label>

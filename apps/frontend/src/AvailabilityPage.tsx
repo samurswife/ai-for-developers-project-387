@@ -20,18 +20,20 @@ type CalendarState =
       start: string | null;
     };
 
+const OWNER_TIME_ZONE = 'Europe/Moscow';
+
 const dateLabel = new Intl.DateTimeFormat('ru-RU', {
-  timeZone: 'Europe/Moscow',
+  timeZone: OWNER_TIME_ZONE,
   dateStyle: 'long',
 });
 const shortDateLabel = new Intl.DateTimeFormat('ru-RU', {
-  timeZone: 'Europe/Moscow',
+  timeZone: OWNER_TIME_ZONE,
   weekday: 'short',
   day: 'numeric',
   month: 'short',
 });
 const timeLabel = new Intl.DateTimeFormat('ru-RU', {
-  timeZone: 'Europe/Moscow',
+  timeZone: OWNER_TIME_ZONE,
   hour: '2-digit',
   minute: '2-digit',
   hourCycle: 'h23',

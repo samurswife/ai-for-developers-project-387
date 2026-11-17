@@ -1,5 +1,9 @@
-import { useState } from 'react';
-import { bookingsListUpcomingBookings, type Booking } from '@calendar/api-sdk';
+import { useCallback, useState } from 'react';
+import {
+  bookingsListUpcomingBookings,
+  calendarSettingsGetCalendarSettings,
+  type Booking,
+} from '@calendar/api-sdk';
 import { Button } from '@/components/ui/button';
 import { api } from '@/lib/api';
 import { BookingDetails } from './BookingDetails';
@@ -8,20 +12,39 @@ import { useReadLifecycle } from './use-read-lifecycle';
 type MeetingsState =
   | { status: 'loading' }
   | { status: 'error' }
-  | { status: 'ready'; items: Booking[] };
+  | { status: 'ready'; items: Booking[]; timeZone: string };
 
-async function readMeetings(signal: AbortSignal): Promise<MeetingsState> {
-  try {
-    const result = await bookingsListUpcomingBookings({ client: api, signal });
-    return result.data ? { status: 'ready', items: result.data.items } : { status: 'error' };
-  } catch {
-    return { status: 'error' };
-  }
+const DEFAULT_OWNER_TIME_ZONE = 'Europe/Moscow';
+
+/** Localized label for a time zone, including the owner-context suffix when applicable. */
+function ownerZoneLabel(timeZone: string) {
+  if (timeZone === 'Europe/Moscow') return 'Московское время (UTC+3)';
+  return `${timeZone} (время владельца)`;
 }
 
 export function UpcomingMeetings() {
   const [state, setState] = useState<MeetingsState>({ status: 'loading' });
-  const refresh = useReadLifecycle(readMeetings, () => setState({ status: 'loading' }), setState);
+  const refresh = useReadLifecycle(
+    useCallback(async (signal: AbortSignal): Promise<MeetingsState> => {
+      try {
+        const settings = await calendarSettingsGetCalendarSettings({ client: api, signal });
+        const bookings = await bookingsListUpcomingBookings({ client: api, signal });
+        if (!bookings.data) return { status: 'error' };
+        return {
+          status: 'ready',
+          items: bookings.data.items,
+          timeZone: settings.data?.timeZone ?? DEFAULT_OWNER_TIME_ZONE,
+        };
+      } catch {
+        return { status: 'error' };
+      }
+    }, []),
+    () => setState({ status: 'loading' }),
+    setState,
+  );
+
+  const timeZone = state.status === 'ready' ? state.timeZone : DEFAULT_OWNER_TIME_ZONE;
+  const zoneLabel = ownerZoneLabel(timeZone);
 
   return (
     <section className="mt-10" aria-labelledby="upcoming-title">
@@ -50,7 +73,11 @@ export function UpcomingMeetings() {
             <ul className="space-y-5">
               {state.items.map((booking) => (
                 <li className="page-panel min-w-0 break-words" key={booking.id}>
-                  <BookingDetails {...booking} />
+                  <BookingDetails
+                    {...booking}
+                    timeZone={timeZone}
+                    zoneLabel={zoneLabel}
+                  />
                   <p className="mt-4">{booking.guestName}</p>
                   <p className="mt-1">{booking.guestEmail}</p>
                 </li>

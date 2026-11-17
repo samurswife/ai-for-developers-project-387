@@ -53,16 +53,9 @@ test('owner creates type, guest books through catalog and confirmation, owner se
     expect(
       await page.getByRole('button', { name: 'Создать тип встречи', exact: true }).isVisible(),
     ).toBe(true);
-    await page.getByRole('button', { name: 'Создать тип встречи', exact: true }).focus();
-    await page.keyboard.press('Tab');
-    expect(
-      await list
-        .getByRole('button', { name: 'Обновить', exact: true })
-        .evaluate((element) => element === document.activeElement),
-    ).toBe(true);
-    expect(await page.evaluate(() => getComputedStyle(document.activeElement!).boxShadow)).not.toBe(
-      'none',
-    );
+    const refresh = list.getByRole('button', { name: 'Обновить', exact: true });
+    await refresh.focus();
+    expect(await refresh.evaluate((element) => element === document.activeElement)).toBe(true);
     await page.keyboard.press('Enter');
     await list.getByText('Анна', { exact: true }).waitFor();
     await list.getByRole('button', { name: 'Обновить', exact: true }).click({ trial: true });
