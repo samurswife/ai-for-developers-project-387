@@ -126,4 +126,4 @@ jobs:
           ARTIFACT_URL: ${{ steps.artifact.outputs.artifact-url }}
           EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
-          printf '\n[Download browser evidence](%s)\n\nExpected head SHA: `%s`\n' "$ARTIFACT_URL" "$EXPECTED_HEAD_SHA" >> "$GITHUB_STEP_SUMMARY"
+          printf '\n[Download browser evidence](%s)\n\nExpected head SHA: %s\n' "$ARTIFACT_URL" "$EXPECTED_HEAD_SHA" >> "$GITHUB_STEP_SUMMARY"
