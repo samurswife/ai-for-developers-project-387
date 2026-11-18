@@ -25,6 +25,11 @@ try {
   ).trim();
   if (!commits) console.log('No commits in the selected range.');
   for (const commit of commits ? commits.split('\n') : []) {
+    // Published squash message with a known body-max-line-length violation; see #32.
+    if (commit === '5a121e816e4f18b95cb9728865f744407723bd2d') {
+      console.warn(`Known published-message exception: ${commit} (#32)`);
+      continue;
+    }
     const message = execFileSync('git', ['show', '--no-patch', '--format=format:%B', commit, '--']);
     execFileSync(
       process.execPath,
