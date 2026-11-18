@@ -29,7 +29,7 @@
     "scan:vulnerabilities": "node --test tools/quality/picomatch.test.mjs && osv-scanner scan source --lockfile pnpm-lock.yaml",
     "lint:generated": "node tools/quality/check-generated.mjs",
     "lint:typespec": "pnpm --filter @calendar/contract exec tsp format --check main.tsp",
-    "lint:workflows": "jactionlint --strict-exit .github/workflows/check.yml .github/workflows/release-please.yml .github/workflows/opencode.yml .github/workflows/opencode-triage.yml .github/workflows/opencode-review.yml .github/workflows/opencode-result.yml && node --test tools/opencode/*.test.mjs tools/quality/browser-evidence.test.mjs",
+    "lint:workflows": "jactionlint --strict-exit .github/workflows/check.yml .github/workflows/release-please.yml .github/workflows/opencode.yml .github/workflows/opencode-triage.yml .github/workflows/opencode-review.yml .github/workflows/opencode-result.yml .github/workflows/opencode-audit.yml && node --test tools/opencode/*.test.mjs tools/quality/browser-evidence.test.mjs",
     "lint:agents": "agnix --strict --target codex AGENTS.md"
   },
   "devDependencies": {
