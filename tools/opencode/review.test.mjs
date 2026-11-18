@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import test from 'node:test';
 
@@ -43,6 +45,8 @@ async function execute(id, options = {}) {
   const calls = [];
   const failures = [];
   const files = new Map();
+  if (options.snapshot !== undefined)
+    files.set('/runner-temp/opencode-review/session.json', JSON.stringify(options.snapshot));
   if (options.events !== undefined)
     files.set('/runner-temp/opencode-review/events.jsonl', options.events);
   const env = {
@@ -419,6 +423,23 @@ test('changed-file truncation and missing patches are visible review gaps', asyn
   assert.ok(saved.gaps.some((gap) => gap.includes('patch:file-0.ts: unavailable')));
 });
 
+const snapshot = (text, overrides = {}) => ({
+  info: { id: 'ses_test' },
+  messages: [
+    {
+      info: {
+        role: 'assistant',
+        sessionID: 'ses_test',
+        finish: 'stop',
+        time: { created: 1, completed: 2 },
+        ...overrides,
+      },
+      parts: [{ type: 'text', text }],
+    },
+  ],
+});
+const finalReview = (text) => snapshot(`${text}\nREVIEW_COMPLETE`);
+
 const textEvent = (text) => JSON.stringify({ type: 'text', part: { text } });
 
 test('the observed duration-only response fails review instead of producing a green check', async () => {
@@ -431,6 +452,7 @@ test('the observed duration-only response fails review instead of producing a gr
 
 test('publisher posts only final text with checked SHA/model/log link, without reasoning or tool output', async () => {
   const result = await execute('publish', {
+    snapshot: finalReview('No confirmed defects'),
     events: [
       textEvent('No confirmed defects'),
       JSON.stringify({ type: 'reasoning', part: { text: 'private thinking' } }),
@@ -513,4 +535,94 @@ test('all OpenCode paths select MiniMax M3 and the review has no checkout, token
     assert.match(text, /"small_model":"opencode\/minimax-m3"/);
     assert.doesNotMatch(text, /glm-5\.3-flash-free/);
   }
+});
+
+test('the complete persisted answer wins over a truncated or missing event stream', async () => {
+  for (const events of ['', textEvent('incomplete wor')]) {
+    const result = await execute('publish', {
+      events,
+      snapshot: finalReview('No confirmed defects. Full final review.'),
+    });
+    assert.deepEqual(result.failures, []);
+    const body = result.calls.find((c) => c.name === 'publish').input.body;
+    assert.match(body, /Full final review/);
+    assert.doesNotMatch(body, /incomplete wor|REVIEW_COMPLETE/);
+  }
+});
+
+test('zero exit and plausible text cannot hide truncation, missing stop or a snapshot error', async () => {
+  for (const data of [
+    snapshot('partial'),
+    snapshot('partial\nREVIEW_COMPLETE', { finish: 'length' }),
+    snapshot('answer\nREVIEW_COMPLETE', { finish: undefined }),
+    snapshot('answer\nREVIEW_COMPLETE', { error: { message: 'provider secret-value' } }),
+    snapshot('answer\nREVIEW_COMPLETE', { time: { created: 1 } }),
+    { info: { id: 'ses_other' }, messages: finalReview('answer').messages },
+    finalReview(''),
+  ]) {
+    const result = await execute('publish', {
+      events: textEvent('Looks successful'),
+      snapshot: data,
+    });
+    assert.equal(result.failures.length, 1);
+    const body = result.calls.find((c) => c.name === 'publish').input.body;
+    assert.match(body, /agent_failed/);
+    assert.doesNotMatch(body, /secret-value|Looks successful/);
+  }
+});
+
+test('the actual model shell exports exactly its isolated session without a second model call', (t) => {
+  const directory = mkdtempSync(path.join(tmpdir(), 'opencode-review-export-'));
+  t.after(() => rmSync(directory, { recursive: true, force: true }));
+  mkdirSync(path.join(directory, 'bin'));
+  mkdirSync(path.join(directory, 'opencode-review'));
+  writeFileSync(path.join(directory, 'opencode-review/context.json'), '{}');
+  const calls = path.join(directory, 'calls');
+  const cli = `#!/usr/bin/env node
+    const fs = require('node:fs');
+    const args = process.argv.slice(2);
+    fs.appendFileSync(${JSON.stringify(calls)}, args[0] + '\\n');
+    if (args[0] === 'session') console.log(JSON.stringify([{id:'ses_test',directory:process.cwd()}]));
+    else if (args[0] === 'export') console.log(${JSON.stringify(JSON.stringify(finalReview('Full review')))});
+    else if (args[0] === 'run') console.log(${JSON.stringify(textEvent('partial'))});
+    else process.exit(1);
+  `;
+  writeFileSync(path.join(directory, 'bin/opencode'), cli, { mode: 0o755 });
+  const step = workflow.split('        id: model\n')[1].split('      - name: Publish review')[0];
+  const script = step
+    .split('        run: |\n')[1]
+    .trimEnd()
+    .split('\n')
+    .map((l) => l.slice(10))
+    .join('\n');
+  const result = spawnSync('bash', ['-c', script], {
+    encoding: 'utf8',
+    timeout: 10000,
+    env: {
+      ...process.env,
+      RUNNER_TEMP: directory,
+      GITHUB_OUTPUT: path.join(directory, 'outputs'),
+      OPENCODE_API_KEY: 'secret-never-printed',
+      MODEL: 'opencode/minimax-m3',
+      PATH: `${path.join(directory, 'bin')}:${process.env.PATH}`,
+    },
+  });
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(readFileSync(calls, 'utf8'), 'run\nsession\nexport\n');
+  assert.deepEqual(
+    JSON.parse(readFileSync(path.join(directory, 'opencode-review/session.json'), 'utf8')),
+    finalReview('Full review'),
+  );
+  assert.doesNotMatch(result.stdout + result.stderr, /secret-never-printed/);
+});
+
+test('a later incomplete assistant cannot be replaced by an earlier completed answer', async () => {
+  const old = finalReview('Old answer').messages[0];
+  const latest = snapshot('unfinished', { time: { created: 3, completed: 4 }, finish: 'length' })
+    .messages[0];
+  const result = await execute('publish', {
+    snapshot: { info: { id: 'ses_test' }, messages: [latest, old] },
+  });
+  assert.equal(result.failures.length, 1);
+  assert.doesNotMatch(result.calls.find((c) => c.name === 'publish').input.body, /Old answer/);
 });

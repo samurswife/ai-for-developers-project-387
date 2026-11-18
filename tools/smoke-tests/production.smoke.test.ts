@@ -13,7 +13,7 @@ test('production serves the SPA and API, accepts a guest booking and rejects a s
   let finishEvidence: Awaited<ReturnType<typeof browserEvidence>> | undefined;
   try {
     browser = await chromium.launch();
-    const context = await browser.newContext();
+    const context = await browser.newContext({ timezoneId: 'Europe/Moscow' });
     finishEvidence = await browserEvidence(context);
     context.setDefaultTimeout(15_000);
     const errors: string[] = [];

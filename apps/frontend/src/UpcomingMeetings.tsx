@@ -1,27 +1,42 @@
-import { useState } from 'react';
-import { bookingsListUpcomingBookings, type Booking } from '@calendar/api-sdk';
+import { useCallback, useState } from 'react';
+import {
+  bookingsListUpcomingBookings,
+  calendarSettingsGetCalendarSettings,
+  type Booking,
+} from '@calendar/api-sdk';
 import { Button } from '@/components/ui/button';
 import { api } from '@/lib/api';
 import { BookingDetails } from './BookingDetails';
+import { DEFAULT_OWNER_TIME_ZONE, ownerZoneLabel } from './time-zone';
 import { useReadLifecycle } from './use-read-lifecycle';
 
 type MeetingsState =
   | { status: 'loading' }
   | { status: 'error' }
-  | { status: 'ready'; items: Booking[] };
-
-async function readMeetings(signal: AbortSignal): Promise<MeetingsState> {
-  try {
-    const result = await bookingsListUpcomingBookings({ client: api, signal });
-    return result.data ? { status: 'ready', items: result.data.items } : { status: 'error' };
-  } catch {
-    return { status: 'error' };
-  }
-}
+  | { status: 'ready'; items: Booking[]; timeZone: string };
 
 export function UpcomingMeetings() {
   const [state, setState] = useState<MeetingsState>({ status: 'loading' });
-  const refresh = useReadLifecycle(readMeetings, () => setState({ status: 'loading' }), setState);
+  const refresh = useReadLifecycle(
+    useCallback(async (signal: AbortSignal): Promise<MeetingsState> => {
+      try {
+        const settings = await calendarSettingsGetCalendarSettings({ client: api, signal });
+        const bookings = await bookingsListUpcomingBookings({ client: api, signal });
+        if (!bookings.data) return { status: 'error' };
+        return {
+          status: 'ready',
+          items: bookings.data.items,
+          timeZone: settings.data?.timeZone ?? DEFAULT_OWNER_TIME_ZONE,
+        };
+      } catch {
+        return { status: 'error' };
+      }
+    }, []),
+    () => setState({ status: 'loading' }),
+    setState,
+  );
+
+  const timeZone = state.status === 'ready' ? state.timeZone : DEFAULT_OWNER_TIME_ZONE;
 
   return (
     <section className="mt-10" aria-labelledby="upcoming-title">
@@ -50,7 +65,13 @@ export function UpcomingMeetings() {
             <ul className="space-y-5">
               {state.items.map((booking) => (
                 <li className="page-panel min-w-0 break-words" key={booking.id}>
-                  <BookingDetails {...booking} />
+                  <BookingDetails
+                    meetingType={booking.meetingType}
+                    startsAt={booking.startsAt}
+                    endsAt={booking.endsAt}
+                    primaryTimeZone={timeZone}
+                    primaryZoneLabel={ownerZoneLabel(timeZone)}
+                  />
                   <p className="mt-4">{booking.guestName}</p>
                   <p className="mt-1">{booking.guestEmail}</p>
                 </li>

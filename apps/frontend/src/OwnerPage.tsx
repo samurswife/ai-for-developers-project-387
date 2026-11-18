@@ -6,6 +6,7 @@ import {
 } from '@calendar/api-sdk';
 import { Button } from '@/components/ui/button';
 import { api } from '@/lib/api';
+import { OwnerCalendarSettings } from './OwnerCalendarSettings';
 import { UpcomingMeetings } from './UpcomingMeetings';
 
 export function OwnerPage() {
@@ -157,6 +158,7 @@ export function OwnerPage() {
           </div>
         )}
       </div>
+      <OwnerCalendarSettings />
       <UpcomingMeetings />
     </section>
   );

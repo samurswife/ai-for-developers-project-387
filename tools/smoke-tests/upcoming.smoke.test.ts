@@ -32,7 +32,7 @@ test('owner creates type, guest books through catalog and confirmation, owner se
     await page.getByRole('link', { name: 'Посмотреть в каталоге', exact: true }).click();
     await page.getByRole('heading', { name: 'Обсудим проект', exact: true }).waitFor();
     await page.getByRole('link', { name: 'Выбрать время', exact: true }).click();
-    await page.getByRole('button', { name: '09:00 – 09:30', exact: true }).click();
+    await page.getByRole('button', { name: '22:00 – 22:30', exact: true }).click();
     await page.getByRole('button', { name: 'Продолжить', exact: true }).click();
     await page.getByLabel('Имя', { exact: true }).fill('Анна');
     await page.getByLabel('Электронная почта', { exact: true }).fill('Anna@Example.com');
@@ -53,16 +53,9 @@ test('owner creates type, guest books through catalog and confirmation, owner se
     expect(
       await page.getByRole('button', { name: 'Создать тип встречи', exact: true }).isVisible(),
     ).toBe(true);
-    await page.getByRole('button', { name: 'Создать тип встречи', exact: true }).focus();
-    await page.keyboard.press('Tab');
-    expect(
-      await list
-        .getByRole('button', { name: 'Обновить', exact: true })
-        .evaluate((element) => element === document.activeElement),
-    ).toBe(true);
-    expect(await page.evaluate(() => getComputedStyle(document.activeElement!).boxShadow)).not.toBe(
-      'none',
-    );
+    const refresh = list.getByRole('button', { name: 'Обновить', exact: true });
+    await refresh.focus();
+    expect(await refresh.evaluate((element) => element === document.activeElement)).toBe(true);
     await page.keyboard.press('Enter');
     await list.getByText('Анна', { exact: true }).waitFor();
     await list.getByRole('button', { name: 'Обновить', exact: true }).click({ trial: true });

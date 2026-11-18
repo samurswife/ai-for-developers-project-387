@@ -30,7 +30,7 @@ async function publish(url: string) {
   return response.json();
 }
 
-async function choose(page: Page, start = '09:00 – 09:30') {
+async function choose(page: Page, start = '22:00 – 22:30') {
   await page.getByRole('button', { name: start, exact: true }).click();
   await page.getByRole('button', { name: 'Продолжить', exact: true }).click();
   await page.getByRole('heading', { name: 'Подтвердите запись', exact: true }).waitFor();
@@ -62,13 +62,14 @@ test('guest books through SDK, reloads confirmation, navigates back without POST
     });
     await page.goto(`${url}/meeting-types/${item.id}`);
     await choose(page);
+    await page.getByText('America/Los_Angeles', { exact: true }).waitFor();
     await page.getByText('Московское время (UTC+3)', { exact: true }).waitFor();
     await page.getByLabel('Имя', { exact: true }).fill('Анна');
     await page.getByLabel('Электронная почта', { exact: true }).fill('Anna@Example.com');
     await page.screenshot({ path: '/tmp/ticket12-form-mobile.png', fullPage: true });
     await page.getByRole('button', { name: 'Подтвердить запись', exact: true }).click();
     await page.getByRole('heading', { name: 'Вы записаны', exact: true }).waitFor();
-    expect(page.url()).toMatch(/\/bookings\/[0-9a-f-]+\/confirmation$/);
+    expect(page.url()).toMatch(/\/bookings\/[0-9a-f-]+\/confirmation(\?|$)/);
     await page.getByText('Анна', { exact: true }).waitFor();
     await page.getByText('Anna@Example.com', { exact: true }).waitFor();
     await page.getByText('09:00 – 09:30', { exact: true }).waitFor();
@@ -92,8 +93,8 @@ test('guest books through SDK, reloads confirmation, navigates back without POST
     await page.screenshot({ path: '/tmp/ticket12-confirmation-mobile.png', fullPage: true });
     await page.getByRole('link', { name: 'Записаться снова', exact: true }).click();
     await page.getByRole('link', { name: 'Выбрать время', exact: true }).click();
-    expect(await page.getByRole('button', { name: '09:00 – 09:30', exact: true }).count()).toBe(0);
-    await choose(page, '09:30 – 10:00');
+    expect(await page.getByRole('button', { name: '22:00 – 22:30', exact: true }).count()).toBe(0);
+    await choose(page, '22:30 – 23:00');
     expect(await page.getByLabel('Имя', { exact: true }).inputValue()).toBe('');
     expect(await page.getByLabel('Электронная почта', { exact: true }).inputValue()).toBe('');
     expect(posts).toBe(1);
@@ -132,7 +133,7 @@ test('field errors retain values, changing time preserves draft, reload clears f
     await page.getByLabel('Имя', { exact: true }).fill('Анна');
     await page.getByLabel('Электронная почта', { exact: true }).fill('anna@example.com');
     await page.getByRole('link', { name: 'Изменить время', exact: true }).click();
-    await choose(page, '09:30 – 10:00');
+    await choose(page, '22:30 – 23:00');
     expect(await page.getByLabel('Имя', { exact: true }).inputValue()).toBe('Анна');
     expect(await page.getByLabel('Электронная почта', { exact: true }).inputValue()).toBe(
       'anna@example.com',
@@ -222,7 +223,7 @@ for (const cause of ['conflict', 'start-now', 'midnight'] as const) {
         .waitFor();
       expect(posts).toBe(1);
       await page.getByRole('button', { name: 'Повторить', exact: true }).click();
-      const nextSlot = cause === 'midnight' ? '09:00 – 09:30' : '09:30 – 10:00';
+      const nextSlot = cause === 'midnight' ? '22:00 – 22:30' : '22:30 – 23:00';
       await page.getByRole('button', { name: nextSlot, exact: true }).waitFor();
       expect(
         await page
@@ -284,15 +285,15 @@ for (const failure of ['lost-response', '500'] as const) {
         await page.getByRole('button', { name: 'Подтвердить запись', exact: true }).isDisabled(),
       ).toBe(true);
       await page.getByRole('link', { name: 'Изменить время', exact: true }).click();
-      await page.getByRole('button', { name: '09:30 – 10:00', exact: true }).waitFor();
-      expect(await page.getByRole('button', { name: '09:00 – 09:30', exact: true }).count()).toBe(
+      await page.getByRole('button', { name: '22:30 – 23:00', exact: true }).waitFor();
+      expect(await page.getByRole('button', { name: '22:00 – 22:30', exact: true }).count()).toBe(
         0,
       );
       await page
         .getByRole('alert')
         .filter({ hasText: 'Результат записи неизвестен. Запись могла сохраниться.' })
         .waitFor();
-      await choose(page, '09:30 – 10:00');
+      await choose(page, '22:30 – 23:00');
       expect(await page.getByLabel('Имя', { exact: true }).inputValue()).toBe('Анна');
       expect(await page.getByLabel('Электронная почта', { exact: true }).inputValue()).toBe(
         'anna@example.com',
@@ -338,7 +339,7 @@ test('entering a booking URL rechecks availability, handles unknown types and re
       .getByRole('alert')
       .filter({ hasText: 'Выбранное время больше недоступно. Выберите другой слот.' })
       .waitFor();
-    await page.getByRole('button', { name: '09:15 – 09:45', exact: true }).waitFor();
+    await page.getByRole('button', { name: '22:15 – 22:45', exact: true }).waitFor();
     expect(await page.getByRole('button', { name: 'Продолжить', exact: true }).isDisabled()).toBe(
       true,
     );

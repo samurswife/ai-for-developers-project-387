@@ -48,7 +48,7 @@ export class BookingsController implements BookingsControllerMethods {
       !parsed ||
       !Number.isFinite(start) ||
       new Date(`${parsed[1]}T00:00:00Z`).toISOString().slice(0, 10) !== parsed[1] ||
-      !scheduledDays(meetingType.durationMinutes, currentTime).some((day) =>
+      !scheduledDays(calendar.timeZone, meetingType.durationMinutes, currentTime).some((day) =>
         day.starts.includes(start),
       )
     ) {

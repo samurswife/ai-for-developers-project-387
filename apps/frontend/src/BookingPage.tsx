@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState, type SubmitEvent } from 'react';
 import {
   bookingsCreateBooking,
+  calendarSettingsGetCalendarSettings,
   meetingTypesGetMeetingType,
   meetingTypesGetSlots,
   type MeetingType,
@@ -11,13 +12,15 @@ import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { BookingDetails } from './BookingDetails';
 import { bookingDraft, navigate, resetBookingDraft, updateBookingDraft } from './booking-scenario';
+import { guestZoneFromPath, ownerZoneLabel, zoneLabel } from './time-zone';
 import { useReadLifecycle } from './use-read-lifecycle';
 
 async function readSelection(id: string, start: string | null, signal: AbortSignal) {
   try {
-    const [type, slots] = await Promise.all([
+    const [type, slots, settings] = await Promise.all([
       meetingTypesGetMeetingType({ client: api, path: { id }, signal }),
       meetingTypesGetSlots({ client: api, path: { id }, signal }),
+      calendarSettingsGetCalendarSettings({ client: api, signal }).catch(() => undefined),
     ]);
     if (
       type.error?.code === 'MEETING_TYPE_NOT_FOUND' ||
@@ -45,7 +48,8 @@ async function readSelection(id: string, start: string | null, signal: AbortSign
       }
       return { status: 'error' as const };
     }
-    return { status: 'ready' as const, meetingType: type.data, slot };
+    const ownerTimeZone = settings?.data?.timeZone ?? slots.data.timeZone;
+    return { status: 'ready' as const, meetingType: type.data, slot, ownerTimeZone };
   } catch {
     return { status: 'error' as const };
   }
@@ -53,7 +57,12 @@ async function readSelection(id: string, start: string | null, signal: AbortSign
 
 export function BookingPage({ id }: { id: string }) {
   const start = new URLSearchParams(location.search).get('start');
-  const [selection, setSelection] = useState<{ meetingType: MeetingType; slot: Slot }>();
+  const [guestZone] = useState<string>(guestZoneFromPath);
+  const [selection, setSelection] = useState<{
+    meetingType: MeetingType;
+    slot: Slot;
+    ownerTimeZone: string;
+  }>();
   const [readState, setReadState] = useState<'loading' | 'ready' | 'error' | 'not-found'>(
     'loading',
   );
@@ -86,7 +95,7 @@ export function BookingPage({ id }: { id: string }) {
       if (result.response?.status === 201 && result.data) {
         sessionStorage.setItem(`booking:${result.data.id}`, JSON.stringify(result.data));
         resetBookingDraft();
-        navigate(`/bookings/${result.data.id}/confirmation`);
+        navigate(`/bookings/${result.data.id}/confirmation?tz=${encodeURIComponent(guestZone)}`);
       } else if (result.error?.code === 'VALIDATION_ERROR')
         setErrors(result.error.fieldErrors ?? []);
       else if (result.error?.code === 'MEETING_TYPE_NOT_FOUND') setReadState('not-found');
@@ -139,7 +148,18 @@ export function BookingPage({ id }: { id: string }) {
       )}
       {readState === 'ready' && selection && (
         <div className="page-panel mt-6">
-          <BookingDetails meetingType={selection.meetingType} {...selection.slot} />
+          <BookingDetails
+            meetingType={selection.meetingType}
+            startsAt={selection.slot.startsAt}
+            endsAt={selection.slot.endsAt}
+            primaryTimeZone={guestZone}
+            primaryZoneLabel={zoneLabel(guestZone)}
+            secondaryTimeZone={selection.ownerTimeZone}
+            secondaryZoneLabel={ownerZoneLabel(selection.ownerTimeZone)}
+          />
+          <p className="mt-3 text-sm text-muted-foreground">
+            Время гостя указано основным, время владельца — дополнительным.
+          </p>
           <form className="mt-6 space-y-5" onSubmit={submit} noValidate aria-busy={sending}>
             <div>
               <label htmlFor="guest-name">Имя</label>
@@ -186,7 +206,7 @@ export function BookingPage({ id }: { id: string }) {
             </p>
           )}
           <a
-            href={`/meeting-types/${id}`}
+            href={`/meeting-types/${id}?tz=${encodeURIComponent(guestZone)}`}
             className="navigation-link mt-5 inline-block text-primary underline"
           >
             Изменить время
