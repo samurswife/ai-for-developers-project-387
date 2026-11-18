@@ -490,7 +490,7 @@ test('timeout, infra, missing output, malformed events, zero-exit model errors a
   }
 });
 
-test('all OpenCode paths select GLM-5.3-Flash Free and the review has no checkout, token env, tools, OIDC or session continuation', () => {
+test('all OpenCode paths select MiniMax M3 and the review has no checkout, token env, tools, OIDC or session continuation', () => {
   const authorizeJob = workflow.split('\n  review:\n')[0];
   const modelStep = workflow
     .split('      - name: Review with a fresh read-only session\n')[1]
