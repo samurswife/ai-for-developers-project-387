@@ -206,7 +206,7 @@ test(
       const before = JSON.parse(
         execute('opencode', ['debug', 'agent', 'build'], {
           OPENCODE_CONFIG_CONTENT:
-            '{"model":"opencode/glm-5.3-flash-free","small_model":"opencode/glm-5.3-flash-free"}',
+            '{"model":"opencode/minimax-m3","small_model":"opencode/minimax-m3"}',
         }),
       );
       assert.equal(actionFor(before.permission, 'external_directory', '/home/runner/*'), 'ask');
