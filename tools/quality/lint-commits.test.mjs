@@ -100,6 +100,22 @@ test('history lint accepts an empty range', (t) => {
   assert.match(result.stdout, /No commits/);
 });
 
+test('only the exact published commit is exempt; copying its message still fails', (t) => {
+  const published = '5a121e816e4f18b95cb9728865f744407723bd2d';
+  const source = fileURLToPath(new URL('../../', import.meta.url));
+  const { git, commit, lint } = fixture(t);
+  git('fetch', '--quiet', '--no-tags', source, published);
+  git('checkout', '--quiet', '--detach', published);
+  const parent = git('rev-parse', `${published}^`);
+  const exempt = lint('--from', parent);
+  assert.equal(exempt.status, 0, exempt.stdout + exempt.stderr);
+  assert.match(exempt.stderr, new RegExp(`Known published-message exception: ${published}`));
+  commit(git('show', '--no-patch', '--format=%B', published));
+  const copied = lint('--from', parent);
+  assert.equal(copied.status, 1, copied.stdout + copied.stderr);
+  assert.match(copied.stdout + copied.stderr, /body-max-line-length/);
+});
+
 test('history lint rejects missing revisions', (t) => {
   const { lint } = fixture(t);
   for (const option of ['--from', '--to']) {

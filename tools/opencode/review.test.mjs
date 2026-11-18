@@ -440,7 +440,7 @@ test('publisher posts only final text with checked SHA/model/log link, without r
   const published = result.calls.find((call) => call.name === 'publish').input.body;
   assert.match(published, /No confirmed defects/);
   assert.match(published, /head-sha/);
-  assert.match(published, /opencode\/glm-5\.3-flash-free/);
+  assert.match(published, /opencode\/minimax-m3/);
   assert.match(published, /actions\/runs\/100/);
   assert.doesNotMatch(published, /private thinking|tool output/);
   assert.deepEqual(result.failures, []);
@@ -490,7 +490,7 @@ test('timeout, infra, missing output, malformed events, zero-exit model errors a
   }
 });
 
-test('all OpenCode paths select GLM-5.3-Flash Free and the review has no checkout, token env, tools, OIDC or session continuation', () => {
+test('all OpenCode paths select MiniMax M3 and the review has no checkout, token env, tools, OIDC or session continuation', () => {
   const authorizeJob = workflow.split('\n  review:\n')[0];
   const modelStep = workflow
     .split('      - name: Review with a fresh read-only session\n')[1]
@@ -509,8 +509,8 @@ test('all OpenCode paths select GLM-5.3-Flash Free and the review has no checkou
   assert.equal(workflow.split('OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}').length - 1, 1);
   for (const name of ['opencode.yml', 'opencode-triage.yml', 'opencode-review.yml']) {
     const text = readFileSync(new URL(`../../.github/workflows/${name}`, import.meta.url), 'utf8');
-    assert.match(text, /MODEL: opencode\/glm-5\.3-flash-free/);
-    assert.match(text, /"small_model":"opencode\/glm-5\.3-flash-free"/);
-    assert.doesNotMatch(text, /minimax-m3/);
+    assert.match(text, /MODEL: opencode\/minimax-m3/);
+    assert.match(text, /"small_model":"opencode\/minimax-m3"/);
+    assert.doesNotMatch(text, /glm-5\.3-flash-free/);
   }
 });
